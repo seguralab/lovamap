@@ -1,0 +1,12 @@
+.vscode/
+*.asv
+*.mat
+*.txt
+*.gif
+*.tif
+*.xlsx
+*.zip
+*.fig
+*.mex*
+*.exe
+*.vtk
