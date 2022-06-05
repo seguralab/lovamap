@@ -1,15 +1,17 @@
 %LOVAMAP This function analyzes the void space of 3D-packed particles.
-function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_percent, hall_cutoff, ...
-    shell_thickness, num_2D_slices)
+function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_percent, ...
+    dip_percent, hall_cutoff, shell_thickness, num_2D_slices, combine_edge_subs)
 
     arguments
         domain_file {mustBeFile}
         voxel_size (1, 1) double {mustBePositive, mustBeFinite, mustBeNonNan}
         voxel_range (1, 2) double {mustBePositive, mustBeFinite, mustBeNonNan}
         crop_percent (1, 1) double {mustBeInRange(crop_percent, 0, 1)}
+        dip_percent (1, 1) double {mustBeNonnegative, mustBeFinite, mustBeNonNan}
         hall_cutoff (1, 1) double
         shell_thickness (1, 1) double {mustBePositive, mustBeFinite, mustBeNonNan}
         num_2D_slices (1, 1) int32 {mustBeInteger}
+        combine_edge_subs (1, 1) logical = true;
     end
 
     totalTimeStart = tic;
@@ -25,16 +27,18 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     timeLogIdx = length(time_log);
 
     % Save the input arguments into the output struct for easy reference later
-    data.Timestamp                = datestr(now, 'yyyy-mm-dd HH:MM');
-    data.InputArgs                = struct;
-    data.InputArgs.DomainFile     = GetFullPath(domain_file);
-    data.InputArgs.VoxelSize      = voxel_size;
-    data.InputArgs.VoxelRangeMin  = voxel_range(1);
-    data.InputArgs.VoxelRangeMax  = voxel_range(2);
-    data.InputArgs.CropPercent    = crop_percent;
-    data.InputArgs.HallCutoff     = hall_cutoff;
-    data.InputArgs.ShellThickness = shell_thickness;
-    data.InputArgs.Num2DSlices    = num_2D_slices;
+    data.Timestamp                 = datestr(now, 'yyyy-mm-dd HH:MM:SS');
+    data.InputArgs                 = struct;
+    data.InputArgs.DomainFile      = GetFullPath(domain_file);
+    data.InputArgs.VoxelSize       = voxel_size;
+    data.InputArgs.VoxelRangeMin   = voxel_range(1);
+    data.InputArgs.VoxelRangeMax   = voxel_range(2);
+    data.InputArgs.CropPercent     = crop_percent;
+    data.InputArgs.DipPercent      = dip_percent;
+    data.InputArgs.HallCutoff      = hall_cutoff;
+    data.InputArgs.ShellThickness  = shell_thickness;
+    data.InputArgs.Num2DSlices     = num_2D_slices;
+    data.InputArgs.CombineEdgeSubs = combine_edge_subs;
 
     % Check file type and read in data
     [~, ~, fExt] = fileparts(domain_file);
@@ -330,11 +334,13 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         end
                     end
 
-                    % Petes code to determine dx
-                    [domain, dx, ~] = setVoxelSize(domain, dx, voxel_range);
-                    if dx == 0
-                        % need significant digit of dx to be decimal
-                        [domain, dx, ~] = setVoxelSize(domain, 0.5, voxel_range);
+                    if ~isempty(voxel_range)
+                        % Petes code to determine dx
+                        [domain, dx, ~] = setVoxelSize(domain, dx, voxel_range);
+                        if dx == 0
+                            % need significant digit of dx to be decimal
+                            [domain, dx, ~] = setVoxelSize(domain, 0.5, voxel_range);
+                        end
                     end
 
                     % fprintf('%29s %.1f\n\n', 'dx:', dx);
@@ -2982,11 +2988,21 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     rp = ridges1D.rp_key(ridges1D.pks2, 1 : 2);
     pks_graph = ridges1D.rp_keyind(ridges1D.pks2, :);
 
+%     % Method #1
+%     EDT_cutoff = dip_percent * mean(peaks.L7.EDT(pks_graph), 2);
+%     r1D_min    = edt_full(ridges1D.min(ridges1D.pks2));
+%     ridges1D.threshBool1 = r1D_min > EDT_cutoff; % bool only applies to ridges1D.pks2 vector!
+
+    % Method #2
     phys_dist = vecnorm(voxels(rp(:, 1), :) - voxels(rp(:, 2), :), 2, 2);
     EDT_radii = arrayfun(@(x) peaks.L7.EDT(pks_graph(x, 1)) + ...
                               peaks.L7.EDT(pks_graph(x, 2)), ...
                               1 : size(pks_graph, 1))';
     ridges1D.threshBool2 = phys_dist < EDT_radii; % bool only applies to ridges1D.pks2 vector!
+    % For forcing no connections:
+    if dip_percent >= 1
+        ridges1D.threshBool2 = false(length(ridges1D.threshBool2), 1);
+    end
 
     % store ridges that connect peaks
     ridges1D.connected = ridges1D.pks2(ridges1D.threshBool2);
@@ -3317,10 +3333,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             if fastIntersect(subs_clust.edgeind{i}, edge_ind, 'bool')
                 edge_subs(i) = true;
                 % check to which edge cluster sub belongs
-                for j = 1 : length(edgesubs2comb_2Dind)
-                    if fastIntersect(edgesubs2comb_2Dind{j}, subs_clust.edgeind{i}, 'bool')
-                        edge_clust{j} = [edge_clust{j}; i];
-                        no_comb = 1;
+                if combine_edge_subs
+                    for j = 1 : length(edgesubs2comb_2Dind)
+                        if fastIntersect(edgesubs2comb_2Dind{j}, subs_clust.edgeind{i}, 'bool')
+                            edge_clust{j} = [edge_clust{j}; i];
+                            no_comb = 1;
+                        end
                     end
                 end
                 if no_comb == 0
@@ -3808,13 +3826,13 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 edge_subs(i) = false;
             end
             % Compute mean local thickness
-            if subunits{i}.edge == true
+            if combine_edge_subs && subunits{i}.edge == true
                 subunits{i}.meanLocalThickness = NaN;
             else
                 local_thick_mat = localThickness(subunits{i}.indices, ...
                                   subs_final.skeleton2D{j}, data.EDT(subs_final.skeleton2D{j}), ...
                                   voxels, dx, shape);
-                subunits{i}.meanLocalThickness = sum(local_thick_mat) / (subunits{i}.volume * 1000);
+                subunits{i}.meanLocalThickness = (sum(local_thick_mat) * dx^3) / (subunits{i}.volume * 1000);
             end
             % EDT (from center) along edge of subunit
             subunits{i}.edgeEDT = subs_final.edgeEDT{j};
@@ -3982,8 +4000,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Path Lengths (um)';
                                                    'Tortuosity by Length';
                                                    'Tortuosity by Volume (pL)';
-                                                   'Edge Accessible Ligand (µmoles)';
-                                                   'Edge Ligand Conc (µmoles / µm^2)';
+                                                   'Surface Ligand Conc (µmoles / µm^2)';
+                                                   'Surface Accessible Ligand (µmoles)';
                                                    'Region Vols, <1 um (pL)';
                                                    'Region Vols, 10 um (pL)';
                                                    'Region Vols, 30 um (pL)';
