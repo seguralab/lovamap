@@ -382,6 +382,56 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     bead_struct = labelBeadDomain(bead_data, voxels, ...
                                                   shell_thickness, dx, shape);
 
+                    if crop_percent < 1
+                        nVoxelsOld = nVoxels;
+
+                        [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
+                                                                    crop_percent, dx);
+                        % Shape
+                        nVPDx = (domain(2) - domain(1)) / dx;
+                        nVPDy = (domain(4) - domain(3)) / dx;
+                        nVPDz = (domain(6) - domain(5)) / dx;
+                        nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
+
+                        if abs(round(nVPDx) - nVPDx) < 1e-12
+                            nVPDx = round(nVPDx);
+                        else
+                            error('Number of voxels in x is not an integer.')
+                        end
+                        if abs(round(nVPDy) - nVPDy) < 1e-12
+                            nVPDy = round(nVPDy);
+                        else
+                            error('Number of voxels in y is not an integer.')
+                        end
+                        if abs(round(nVPDz) - nVPDz) < 1e-12
+                            nVPDz = round(nVPDz);
+                        else
+                            error('Number of voxels in z is not an integer.')
+                        end
+
+                        %shape_cropped = [nVPDx, nVPDy, nVPDz];
+
+                        bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
+                                                            nVoxelsOld, crop_mask);
+                        %%%%% THERE'S A BUG HERE... NEED TO RE-ORGANIZE
+                        bead_struct.EdgeIndices = cropToDomain(bead_struct.EdgeIndices, ...
+                                                                nVoxelsOld, crop_mask);
+                        bead_struct.Shell = cropToDomain(bead_struct.Shell, ...
+                                                            nVoxelsOld, crop_mask);
+
+                        bead_struct.Beads = bead_struct.Beads(~cellfun(@isempty, bead_struct.Beads));
+                        bead_struct.EdgeIndices = bead_struct.EdgeIndices(~cellfun(@isempty, bead_struct.EdgeIndices));
+                        bead_struct.Shell = bead_struct.Shell(~cellfun(@isempty, bead_struct.Shell));
+
+                        shape = [nVPDx, nVPDy, nVPDz];
+                        % Update bead struct
+                        bead_struct.Shape     = shape;
+                        bead_struct.DomainMin = [domain(1), domain(3), domain(5)];
+                        bead_struct.AllBeads  = cell2mat(bead_struct.Beads);
+                        bead_struct.AllEdges  = cell2mat(bead_struct.EdgeIndices);
+                        bead_struct.AllShells = cell2mat(bead_struct.Shell);
+
+                    end
                     % Compute particle diameter distribution
                     diameters = particleDiam(bead_struct.Beads, voxels, dx);
 
