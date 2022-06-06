@@ -5,7 +5,7 @@ generate_raw_data = 0;
 interior_only     = 1;
 
 % File
-input_file = '../lindsay_data/for_testing/beadInfo_{100,100}_100_{0,100}_0.dat';
+input_file = '../lindsay_data/for_testing/labeledDomain_soft_0.json';
 
 % Parameters
 voxel_size        = 2;
@@ -26,10 +26,10 @@ dateStamp = datestr(now, 'yymmdd-HHMM');
 % printdatetime(runtimes_file);
 
 % output parameters used in the run
-fprintf('%30s %s\n\n %29s %.2f\n %29s %.2f\n %29s %.1f\n %29s %i\n %29s %i\n\n', ...
-        'Input file:', input_file, ...
-        'crop_percent:', crop_percent, ...
-        'hall_cutoff:', hall_cutoff);
+% fprintf('%30s %s\n\n %29s %.2f\n %29s %.2f\n %29s %.1f\n %29s %i\n %29s %i\n\n', ...
+%         'Input file:', input_file, ...
+%         'crop_percent:', crop_percent, ...
+%         'hall_cutoff:', hall_cutoff);
 
 % Analyze void space
 [data, time_log] = LOVAMAP(input_file, voxel_size, voxel_range, crop_percent, dip_percent, hall_cutoff, ...
