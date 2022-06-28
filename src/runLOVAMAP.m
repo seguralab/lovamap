@@ -5,18 +5,17 @@ generate_raw_data = 0;
 interior_only     = 1;
 
 % File
-% data_filename = 'beadInfo_square100.dat'; % for figs, use 130_5.dat
-% data_filename_full = ['../lindsay_data/domain_spheres/square_packing/', data_filename];
-
-input_file = '../lindsay_data/domain_spheres/square_packing/beadInfo_square160.dat';
+input_file = '../lindsay_data/for_testing/labeledDomain_soft_0.json';
 
 % Parameters
-voxel_size      = 2;
-voxel_range     = [1e7, 1e8]; % desired resolution
-crop_percent    = 1; % 0.5 100_0.dat for wings gif
-hall_cutoff     = 6; % radius, in um
-shell_thickness = 4; % in um
-num_2D_slices   = 30;
+voxel_size        = 2;
+voxel_range       = [1e7, 1e8]; % desired resolution
+crop_percent      = 1; % 0.5 100_0.dat for wings gif
+dip_percent       = 0.8;
+hall_cutoff       = 6; % radius, in um
+shell_thickness   = 4; % in um
+num_2D_slices     = 30;
+combine_edge_subs = true;
 
 % label output files with date stamp
 dateStamp = datestr(now, 'yymmdd-HHMM');
@@ -27,14 +26,14 @@ dateStamp = datestr(now, 'yymmdd-HHMM');
 % printdatetime(runtimes_file);
 
 % output parameters used in the run
-fprintf('%30s %s\n\n %29s %.2f\n %29s %.2f\n %29s %.1f\n %29s %i\n %29s %i\n\n', ...
-        'Input file:', input_file, ...
-        'crop_percent:', crop_percent, ...
-        'hall_cutoff:', hall_cutoff);
+% fprintf('%30s %s\n\n %29s %.2f\n %29s %.2f\n %29s %.1f\n %29s %i\n %29s %i\n\n', ...
+%         'Input file:', input_file, ...
+%         'crop_percent:', crop_percent, ...
+%         'hall_cutoff:', hall_cutoff);
 
 % Analyze void space
-[data, time_log] = LOVAMAP(input_file, voxel_size, voxel_range, crop_percent, hall_cutoff, ...
-    shell_thickness, num_2D_slices);
+[data, time_log] = LOVAMAP(input_file, voxel_size, voxel_range, crop_percent, dip_percent, hall_cutoff, ...
+    shell_thickness, num_2D_slices, combine_edge_subs);
 
 % Output data to Excel file
 % if strcmp(generate_raw_data, 'on') || strcmp(generate_raw_data, 'yes') || sum(generate_raw_data == 1) == 1
