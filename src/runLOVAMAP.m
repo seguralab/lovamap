@@ -1,15 +1,11 @@
 clearvars;
 
-% Excel raw data
-generate_raw_data = true;
-interior_only     = true;
-
-% File
+% File parameters
 filename          = 'beadInfo_{100,100}_100_{0,100}_0.dat';
 file_path         = ['./particle_domains/', filename];
 excel_path        = './lovamap_outputs/';
 
-% Parameters
+% Input parameters
 voxel_size        = 2;
 voxel_range       = [1e7, 1e8]; % desired resolution
 crop_percent      = 1;          % percentage of the domain to analyze
@@ -19,10 +15,14 @@ shell_thickness   = 4;          % in um
 num_2D_slices     = 30;
 combine_edge_subs = true;
 
-% label output files with date stamp
+% Output parameters
+generate_raw_data = true;       % write output data to excel
+interior_only     = true;       % output interior subunits only
+
+% Label output files with date stamp
 dateStamp = datestr(now, 'yymmdd-HHMM');
 
-% Analyze void space
+% Run LOVAMAP 
 [data, time_log] = LOVAMAP(file_path, voxel_size, voxel_range, crop_percent, dip_percent, ...
     hall_cutoff, shell_thickness, num_2D_slices, combine_edge_subs);
 
