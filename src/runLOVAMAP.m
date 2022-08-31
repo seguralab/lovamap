@@ -1,11 +1,11 @@
 clearvars;
 
 % File parameters
-filename          = 'beadInfo_{100,100}_100_{0,100}_0.dat';
-file_path         = ['./particle_domains/', filename];
-excel_path        = './lovamap_outputs/';
+filename          = 'YS_test_1_segment_300.json';
+file_path         = ['./domain_labelled/real/', filename];
+excel_path        = './outputs/';
 
-% Input parameters
+% Input parameters (will get this data from json file if .json)
 voxel_size        = 2;
 voxel_range       = [1e7, 1e8]; % desired resolution
 crop_percent      = 1;          % percentage of the domain to analyze
@@ -13,11 +13,13 @@ dip_percent       = 0.8;
 hall_cutoff       = 6;          % radius, in um
 shell_thickness   = 4;          % in um
 num_2D_slices     = 30;
-combine_edge_subs = true;
+
+% Json required input
+combine_edge_subs = false; % typically needed for real scaffold images
 
 % Output parameters
 generate_raw_data = true;       % export data to excel
-interior_only     = true;       % output interior subunits only
+interior_only     = false;       % output interior subunits only
 
 % Label output files with date stamp
 dateStamp = datestr(now, 'yymmdd-HHMM');
