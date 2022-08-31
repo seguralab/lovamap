@@ -16,7 +16,7 @@ num_2D_slices     = 30;
 combine_edge_subs = true;
 
 % Output parameters
-generate_raw_data = true;       % write output data to excel
+generate_raw_data = true;       % export data to excel
 interior_only     = true;       % output interior subunits only
 
 % Label output files with date stamp
