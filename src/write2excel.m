@@ -13,7 +13,7 @@ function write2excel(data, excel_path, excel_filename, sheet_name, ...
     
     % for subunit data
     which_subslog = true(num_subs, 1);
-    if strcmp(interior_only, 'yes') || strcmp(interior_only, 'on') || (isnumeric(interior_only) && interior_only == 1)
+    if interior_only
         % select only interior data.Subunits
         for i = 1 : num_subs
             if data.Subunits{i}.edge
