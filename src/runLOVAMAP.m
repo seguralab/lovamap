@@ -5,9 +5,9 @@ generate_raw_data = true;
 interior_only     = true;
 
 % File
-file_name  = 'beadInfo_{100,100}_100_{0,100}_0.dat';
-file_path  = ['./particle_domains/', file_name];
-excel_path = './lovamap_outputs/';
+filename         = 'beadInfo_{100,100}_100_{0,100}_0.dat';
+file_path         = ['./particle_domains/', filename];
+excel_path        = './lovamap_outputs/';
 
 % Parameters
 voxel_size        = 2;
@@ -29,15 +29,15 @@ dateStamp = datestr(now, 'yymmdd-HHMM');
 % Output data to Excel file
 if generate_raw_data
     % accommodate old naming system
-    if strcmp(file_name(1:8), 'beadInfo') || strcmp(file_name(1:13), 'labeledDomain')
-        excel_filename = replace(file_name, {'beadInfo_', 'labeledDomain_', '.dat', '.txt', '.json'}, ...
+    if strcmp(filename(1:8), 'beadInfo') || strcmp(filename(1:13), 'labeledDomain')
+        excel_filename = replace(filename, {'beadInfo_', 'labeledDomain_', '.dat', '.txt', '.json'}, ...
                                            {'stats_', 'stats_', '.xlsx', '.xlsx', '.xlsx'});
     else
-        excel_filename = replace(file_name, {'.dat', '.txt', '.json'}, ...
+        excel_filename = replace(filename, {'.dat', '.txt', '.json'}, ...
                                            {'.xlsx', '.xlsx', '.xlsx'});
         excel_filename = horzcat('stats_', excel_filename);
     end
-    write2excel(data, excel_path, excel_filename, file_name, interior_only, 0);
+    write2excel(data, excel_path, excel_filename, filename, interior_only, 0);
 end
 
 [tt, lab] = secondsTime(time_log(end).Time);
