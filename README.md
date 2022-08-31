@@ -2,7 +2,7 @@
 
 ## Overview
 
-`LOVAMAP`, **LO**cal **V**oid **A**nalysis of **MAP** scaffolds, ...
+`LOVAMAP`
 
 ## System requirements
 
