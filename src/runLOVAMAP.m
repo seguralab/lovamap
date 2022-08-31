@@ -5,7 +5,7 @@ generate_raw_data = true;
 interior_only     = true;
 
 % File
-filename         = 'beadInfo_{100,100}_100_{0,100}_0.dat';
+filename          = 'beadInfo_{100,100}_100_{0,100}_0.dat';
 file_path         = ['./particle_domains/', filename];
 excel_path        = './lovamap_outputs/';
 
