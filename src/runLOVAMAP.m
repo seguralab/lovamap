@@ -5,9 +5,9 @@ generate_raw_data = true;
 interior_only     = true;
 
 % File
-filename = 'beadInfo_{100,100}_100_{0,100}_0_beadRemoved.dat';
-full_filename = ['../tmp_lindsay/', filename];
-excel_path = '../tmp_lindsay/outputs/20220830/';
+filename = 'beadInfo_{100,100}_100_{0,100}_0.dat';
+filepath = ['./particle_domain/', filename];
+excel_path = './lovamap_output/';
 
 % Parameters
 voxel_size        = 2;
@@ -23,7 +23,7 @@ combine_edge_subs = true;
 dateStamp = datestr(now, 'yymmdd-HHMM');
 
 % Analyze void space
-[data, time_log] = LOVAMAP(full_filename, voxel_size, voxel_range, crop_percent, dip_percent, ...
+[data, time_log] = LOVAMAP(filepath, voxel_size, voxel_range, crop_percent, dip_percent, ...
     hall_cutoff, shell_thickness, num_2D_slices, combine_edge_subs);
 
 % Output data to Excel file
