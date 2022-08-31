@@ -1,11 +1,12 @@
 clearvars;
 
 % Excel raw data
-generate_raw_data = 0;
+generate_raw_data = 1;
 interior_only     = 1;
 
 % File
-input_file = '../lindsay_data/for_testing/labeledDomain_soft_0.json';
+filename = 'beadInfo_{100,100}_100_{0,100}_0_beadRemoved.dat';
+full_filename = ['../tmp_lindsay/', filename];
 
 % Parameters
 voxel_size        = 2;
@@ -32,24 +33,24 @@ dateStamp = datestr(now, 'yymmdd-HHMM');
 %         'hall_cutoff:', hall_cutoff);
 
 % Analyze void space
-[data, time_log] = LOVAMAP(input_file, voxel_size, voxel_range, crop_percent, dip_percent, hall_cutoff, ...
-    shell_thickness, num_2D_slices, combine_edge_subs);
+[data, time_log] = LOVAMAP(full_filename, voxel_size, voxel_range, crop_percent, dip_percent, ...
+    hall_cutoff, shell_thickness, num_2D_slices, combine_edge_subs);
 
 % Output data to Excel file
-% if strcmp(generate_raw_data, 'on') || strcmp(generate_raw_data, 'yes') || sum(generate_raw_data == 1) == 1
-%     % accommodate old naming system
-%     if strcmp(data_filename(1:8), 'beadInfo') || strcmp(data_filename(1:13), 'labeledDomain')
-%         excel_filename = replace(data_filename, {'beadInfo_', 'labeledDomain_', '.dat', '.txt', '.json'}, ...
-%                                                 {'stats_', 'stats_', '.xlsx', '.xlsx', '.xlsx'});
-%     else
-%         excel_filename = replace(data_filename, {'.dat', '.txt', '.json'}, ...
-%                                                 {'.xlsx', '.xlsx', '.xlsx'});
-%         excel_filename = horzcat('stats_', excel_filename);
-%     end
-%     excel_path = '../lindsay_data/outputs/';
+if strcmp(generate_raw_data, 'on') || strcmp(generate_raw_data, 'yes') || sum(generate_raw_data == 1) == 1
+    % accommodate old naming system
+    if strcmp(filename(1:8), 'beadInfo') || strcmp(filename(1:13), 'labeledDomain')
+        excel_filename = replace(filename, {'beadInfo_', 'labeledDomain_', '.dat', '.txt', '.json'}, ...
+                                           {'stats_', 'stats_', '.xlsx', '.xlsx', '.xlsx'});
+    else
+        excel_filename = replace(filename, {'.dat', '.txt', '.json'}, ...
+                                           {'.xlsx', '.xlsx', '.xlsx'});
+        excel_filename = horzcat('stats_', excel_filename);
+    end
+    excel_path = '../tmp_lindsay/outputs/20220830/';
 
-%     write2excel(data, excel_path, excel_filename, data_filename, interior_only, 0);
-% end
+    write2excel(data, excel_path, excel_filename, filename, interior_only, 0);
+end
 
 [tt, lab] = secondsTime(time_log(end).Time);
 fprintf('%30s %.5f %s\n', 'Total Time:', tt, lab);
