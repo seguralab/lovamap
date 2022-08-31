@@ -31,7 +31,7 @@ function ellipse_stats = ellipseData(subunits, interior_only, plot_on, ...
         end
     end
     for i = 1 : num_subs
-        if interior_only == 1
+        if interior_only
             if ~subunits{i}.edge
                 [ellipse_data{i, 1}, ellipse_data{i, 2}] = ...
                           fittingEllipsoid(subunits{i}.gridpts, plot_on, with_subunits, vectors_only); % function at end of page

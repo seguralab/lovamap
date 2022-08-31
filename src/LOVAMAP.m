@@ -290,19 +290,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 case 'spherical'
                     % Read in file
                     if old_format
-                        beads = dlmread(domain_file, ' ', row_cntr, 0);
+                        sep = ' ';
                     else
-                        beads = dlmread(domain_file, ',', row_cntr, 0);
+                        sep = ',';
                     end
+                    beads = dlmread(domain_file, sep, row_cntr-1, 0);
 
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
-
-%                         %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-%                         %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-%                         rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-%                         bead_data(:, rmv_beads) = [];
-
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -459,7 +454,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     timeLogIdx = timeLogIdx + 1;
 
                 case 'labeled'
-                    beads = dlmread(domain_file, ',', row_cntr, 0);
+                    beads = dlmread(domain_file, ',', row_cntr-1, 0);
 
                     % Create 3D grid of voxel coordinates (center of voxel cube)
                     voxels = centeredGrid3D(domain, dx);
@@ -1233,7 +1228,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         peaks_e.radius{i} = radius;
         peaks_e.v1{i}     = v1;
         peaks_e.v2{i}     = v2;
-        peaks_e.nvec{i}   = cross(v1, v2);
+        if ~isempty(v1 + v2)
+            peaks_e.nvec{i} = cross(v1, v2);
+        else
+            peaks_e.nvec{i} = [NaN; NaN; NaN];
+        end
     end
 
 %         % For each cluster, convert indices (based on shape) to indices
@@ -2144,7 +2143,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         [center, radius, v1, v2] = circlefit3d(voxels(ridges1D.bead_voxs(i, 1), :), ...
                                                voxels(ridges1D.bead_voxs(i, 2), :), ...
                                                voxels(ridges1D.bead_voxs(i, 3), :));
-        nvec = cross(v1, v2);
+        if ~isempty(v1 + v2)
+            nvec = cross(v1, v2);
+        else
+            nvec = [NaN; NaN; NaN];
+        end
 
         % use dot product and average location of lowest EDT voxels to
         % determine whether ridge1D voxels lie above or below plane;
