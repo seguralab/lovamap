@@ -41,6 +41,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     data.InputArgs.CombineEdgeSubs = combine_edge_subs;
 
     % Check file type and read in data
+    tStart = tic;
     [~, ~, fExt] = fileparts(domain_file);
     switch lower(fExt)
         case '.json'
@@ -373,7 +374,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     data.shape = shape;
 
                     % Transform sphere data into bead struct
-                    tStart = tic;
                     bead_struct = labelBeadDomain(bead_data, voxels, ...
                                                   shell_thickness, dx, shape);
 
@@ -441,17 +441,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     num_beads = length(bead_struct.Beads);
                     bead_diams = diameters;
 
-                    tElapsed = toc(tStart);
                     % fprintf('%30s %1.1e\n', 'Number of voxels:', nVoxels);
                     % fprintf(runtimes_file, '%30s %1.1e\n', 'Number of voxels:', nVoxels);
                     % fprintf('%30s %i\n', 'Number of beads:', num_beads);
                     % fprintf(runtimes_file, '%30s %i\n', 'Number of beads:', num_beads);
                     % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Label bead domain:');
-
-                    time_log(timeLogIdx).Name = 'Label bead domain';
-                    time_log(timeLogIdx).Time = tElapsed;
-                    time_log(timeLogIdx).Units = 'sec';
-                    timeLogIdx = timeLogIdx + 1;
 
                 case 'labeled'
                     beads = dlmread(domain_file, ',', row_cntr-1, 0);
@@ -639,6 +633,13 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             error('Unexpected file extension: %s', fExt);
     end
 
+    tElapsed = toc(tStart);
+    time_log(timeLogIdx).Name = 'Process input data';
+    time_log(timeLogIdx).Time = tElapsed;
+    time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
+    timeLogIdx = timeLogIdx + 1;
+
     % This is used later to look up what bead owns what voxels.
     voxelToBeadMap = VoxelToBeadMap(data.beads);
 
@@ -658,6 +659,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Crop to convex hull';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     bead_voxels = false(nVoxels, 1);
@@ -838,6 +840,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Form subunits via hall cutoff';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%*******************************************************%%%%%%%
@@ -856,6 +859,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Find nearest beads';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % Voxel Type
@@ -874,6 +878,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Determine voxel type';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     tStart = tic;
@@ -1003,6 +1008,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Regions based on species size';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % get edge voxels of beads at edge of void space
@@ -1025,6 +1031,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Find nearest beads edge';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % Voxel Type
@@ -1045,6 +1052,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Determine voxel type edge';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % Construct the full EDT
@@ -1278,6 +1286,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Classify ridges2D';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % Create cell array to store medial axes row indices by size
@@ -1308,6 +1317,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'SSSR';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%**********************************************************%%%%%%%
@@ -1340,6 +1350,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Classify ridges1D';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%*************************************%%%%%%%
@@ -1632,6 +1643,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Peaks clustering';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     tStart = tic;
@@ -2003,6 +2015,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Peaks touching';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % combine ridges1D
@@ -2089,6 +2102,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Filling peaks ridges keys';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%*************************************%%%%%%%
@@ -2193,6 +2207,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Collect doors data';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%**************************************************%%%%%%%
@@ -2220,6 +2235,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Find edge ridges';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     tStart = tic;
@@ -2287,6 +2303,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Moving peaks flanking';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % REMOVING PEAKS
@@ -2493,6 +2510,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Remove peaks';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % ADDING PEAKS
@@ -2912,6 +2930,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Force peaks';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % COMBINE PEAKS
@@ -3024,6 +3043,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Combine peaks';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%************************************************%%%%%%%
@@ -3069,6 +3089,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Threshold to combine peaks';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     tStart = tic;
@@ -3118,6 +3139,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Cluster peaks per subunit';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%***********************************************%%%%%%%
@@ -3167,6 +3189,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Lengths of ridges1D';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%********************************************************%%%%%%%
@@ -3281,6 +3304,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Gather subunit skeleton';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     % Subunit bead adjacency matrix for associating ridges2D to subs
@@ -3321,6 +3345,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Associate ridges2D to subs';
     time_log(timeLogIdx).Time = tElapsed;
     time_log(timeLogIdx).Units = 'sec';
+    printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
     %%%%%%%************************************************%%%%%%%
@@ -3368,6 +3393,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Form subunits';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         % Get edge voxels of each subunit
@@ -3562,6 +3588,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Find edge of subunits';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         %%%%%%%*****************************************************%%%%%%%
@@ -3702,6 +3729,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Determine neighbors';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         %%%%%%%****************************************************%%%%%%%
@@ -3766,6 +3794,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Ligand concentration';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         %%%%%%%***************************************************%%%%%%%
@@ -3973,6 +4002,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Accumulate subunit data';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         % Compute 'edge subunit' descriptors
@@ -3986,6 +4016,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Accumulate edge subunit data';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         tStart = tic;
@@ -4013,6 +4044,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Compute eigenvalues of adjacency';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
         % Gather descriptor data
@@ -4167,6 +4199,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         time_log(timeLogIdx).Name = 'Gather descriptor data';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
     end
 
@@ -4184,4 +4217,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     time_log(timeLogIdx).Name = 'Total time';
     time_log(timeLogIdx).Time = totalTimeElapsed;
     time_log(timeLogIdx).Units = 'sec';
+end
+
+function [] = printTimeInfo(s)
+    c = struct2cell(s); 
+    titleLen = 45;
+    dotLen = titleLen - length(c{1});
+    dots = repmat('.', [1, dotLen]);
+    fprintf('%s%s %.5f %s\n', c{1}, dots, c{2}, c{3});
 end
