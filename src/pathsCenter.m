@@ -58,7 +58,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity] = .
         center_peak  = peaks_cube_ind(min_val);
     else
         [~, min_val] = min(arrayfun(@(x) norm(peaks_coord(x, :) - ...
-                           [x_center, y_center, z_center]), 1 : length(peaks_coord)));
+                           [x_center, y_center, z_center]), 1 : size(peaks_coord, 1)));
         center_peak  = min_val;
     end
     
