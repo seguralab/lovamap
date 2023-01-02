@@ -427,6 +427,17 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         bead_struct.AllShells = cell2mat(bead_struct.Shell);
 
                     end
+                    num_beads = length(bead_struct.Beads);
+                    bead_centers = zeros(num_beads, 3);
+                    if crop_percent < 1
+                        for b = 1 : num_beads
+                            % Find bead centers to compute convex hull
+                            bead_centers(b, :) = mean(voxels(bead_struct.Beads{b}, :), 1);
+                        end
+                    else
+                        bead_centers = bead_data(:, 1:3);
+                    end
+
                     % Compute particle diameter distribution
                     diameters = particleDiam(bead_struct.Beads, voxels, dx);
 
