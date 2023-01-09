@@ -295,7 +295,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     else
                         sep = ',';
                     end
-                    beads = dlmread(domain_file, sep, row_cntr-1, 0);
+                    beads = dlmread(domain_file, sep, row_cntr, 0);
 
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
@@ -1284,12 +1284,59 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     ridges2D.indices = accumarray(ic, ridges2D.cum_indices, [], @(r) {sort(r)});
     ridges2D.beads = mat2cell(c, ones(size(c, 1), 1));
     ridges2D.beadNeighbors = vertcat(ridges2D.beads{:});
-
+    
+    % Obtain crawl space info
+    num_2Dr = numel(ridges2D.indices);
+    crawl_width = zeros(num_2Dr, 1);
+    crawl_inds = cell(num_2Dr, 1);
+    touching_beads_log = false(num_2Dr, 1);
+    for i = 1 : num_2Dr
+        val = min(edt(ridges2D.indices{i}));
+        % assume [val = dx] means touching particles
+        if val <= dx
+            crawl_width(i) = 0;
+            touching_beads_log(i) = true;
+        else
+            crawl_width(i) = val * 2;
+        end
+        crawl_inds{i} = ridges2D.indices{i}(edt(ridges2D.indices{i}) == val);
+    end
+    ridges2D.crawl_inds = crawl_inds;
+    ridges2D.crawl_widths = crawl_width;
+    
     % Create sparse full adjacency matrix
     beads_adjacency = sparse(ridges2D.beadNeighbors(:, 1), ...
                              ridges2D.beadNeighbors(:, 2), ...
                              ones(size(ridges2D.beadNeighbors, 1), 1), ...
                              num_beads, num_beads);
+    % Create sparse adjacency matrix of only touching particles
+    only_touching = ridges2D.beadNeighbors(touching_beads_log, :);
+    touching_adjacency = sparse(only_touching(:, 1), ...
+                                only_touching(:, 2), ...
+                                ones(size(only_touching, 1), 1), ...
+                                num_beads, num_beads);    
+                         
+    % Store particle coordination number (# particle neighbors per particle)
+    % as well as # of touching particles
+    bead_neighbors       = cell(num_beads, 1);
+    bead_coord_count     = zeros(num_beads, 1);
+    touching_beads       = cell(num_beads, 1);
+    touching_beads_count = zeros(num_beads, 1);
+    for i = 1 : num_beads
+        neighs_across = find(beads_adjacency(i, :) ~= 0);
+        neighs_down   = find(beads_adjacency(:, i) ~= 0);
+        bead_neighbors{i} = sort([neighs_across(:); neighs_down(:)]);
+        bead_coord_count(i)  = numel(bead_neighbors{i});
+        % check which particles are actually touching
+        touch_across = find(touching_adjacency(i, :) ~= 0);
+        touch_down   = find(touching_adjacency(:, i) ~= 0);
+        touching_beads{i} = sort([touch_across(:); touch_down(:)]);
+        touching_beads_count(i)  = numel(touching_beads{i});        
+    end
+    bead_struct.Neighbors     = bead_neighbors;
+    bead_struct.CoordCount    = bead_coord_count;
+    bead_struct.TouchingBeads = touching_beads;
+    bead_struct.TouchingCount = touching_beads_count;
 
     tElapsed = toc(tStart);
     % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Classify ridges2D:');
@@ -3411,7 +3458,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         tStart = tic;
         subs_clust.edgeind = cell(num_subs, 1);
         subs_clust.edgeEDT = cell(num_subs, 1);
-        edge_subs = false(num_subs, 1);
+        edge_subs_log = false(num_subs, 1);
         edge_clust = cell(length(edgesubs2comb_2Dind), 1);
         no_comb_edgesubs = [];
         for i = 1 : num_subs
@@ -3421,7 +3468,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             no_comb = 0;
             % edge subunit or not
             if fastIntersect(subs_clust.edgeind{i}, edge_ind, 'bool')
-                edge_subs(i) = true;
+                edge_subs_log(i) = true;
                 % check to which edge cluster sub belongs
                 if combine_edge_subs
                     for j = 1 : length(edgesubs2comb_2Dind)
@@ -3435,7 +3482,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     no_comb_edgesubs = [no_comb_edgesubs; i];
                 end
             else
-                edge_subs(i) = false;
+                edge_subs_log(i) = false;
             end
         end
         % combine clusters that share subs
@@ -3591,7 +3638,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % Update sub count
         numIntSubs = length(subs_clust.indices);
         num_subs   = numEdgeSubs + numIntSubs;
-        edge_subs  = false(num_subs, 1);
+        edge_subs_log = false(num_subs, 1);
 
         tElapsed = toc(tStart);
         % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Find edge of subunits:');
@@ -3649,17 +3696,23 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                    num_subs, length(ridges2D.indices));
         % Determine which subs share ridges2D by using subunit-r2D adjacency matrix
         neighbors_subsr2D = cell(num_subs, 1);
+        crawl_spaces_log = true(num_2Dr, 1); % defining crawl spaces between subunits
         for h = 1 : num_subs
             these_subs = [];
             these_r2D = find(subs_adjacencyr2D(h, :));
             for j = these_r2D(:)'
-                these_subs = [these_subs; find(subs_adjacencyr2D(:, j))];
+                adj_subs = find(subs_adjacencyr2D(:, j));
+                these_subs = [these_subs; adj_subs];
+                if isempty(adj_subs) || (numel(adj_subs) == 1 && adj_subs == h)
+                    crawl_spaces_log(j) = false;
+                end
             end
             these_subs = unique(these_subs);
             these_subs(these_subs == h) = [];
             % store subs
             neighbors_subsr2D{h} = these_subs;
         end
+        ridges2D.crawl_log = crawl_spaces_log;
 
         % Determine neighboring (hallway) subunits using ridges1D
         neighbors_subsr1D = cell(num_subs, 1);
@@ -3817,6 +3870,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         max_numpksE = 0;
         % NOTE!!: Remember i tracks the subunit number, but j tracks the
         % index into the data used to fill the subunits!!!
+
         for i = 1 : num_subs
             % edge subs first, followed by interior subs
             if i <= numEdgeSubs
@@ -3888,14 +3942,20 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % subunit neighbors that are adjacent (ridges2D)
             subunits{i}.subNeighborsr2D = neighbors_subsr2D{i};
             % # of hallways leaving subunit
-            subunits{i}.numHalls = length(subunits{i}.subNeighborsr1D);
+            subunits{i}.numHalls = numel(subunits{i}.subNeighborsr1D);
             % # of adjacent subunits
-            subunits{i}.numAdjacent = length(subunits{i}.subNeighborsr2D);
-            % ratio of halls to adjacent subs (normalized connectivity)
-            subunits{i}.normNeigh = subunits{i}.numHalls / subunits{i}.numAdjacent;
+            subunits{i}.numCrawlSpaces = numel(subunits{i}.subNeighborsr2D);
+            % ratio of halls to crawl spaces (normalized connectivity)
+            subunits{i}.normNeigh = subunits{i}.numHalls / subunits{i}.numCrawlSpaces;
             % average of door radii
             subunits{i}.avgDoorDiam = mean(arrayfun(@(x) ridges1D.doors{x}.radius * 2, subunits{i}.doorRidges));
             subunits{i}.avgDoorDiam(isnan(subunits{i}.avgDoorDiam)) = 0;
+            % largest door diameter
+            subunits{i}.largestDoorDiam = max(arrayfun(@(x) ridges1D.doors{x}.radius * 2, subunits{i}.doorRidges));
+            subunits{i}.largestDoorDiam(isempty(subunits{i}.largestDoorDiam)) = 0;
+            % largest door sphere volume
+            subunits{i}.largestDoorVol = (4/3) * pi * (subunits{i}.largestDoorDiam / 2).^3;
+            subunits{i}.largestDoorVol(isempty(subunits{i}.largestDoorVol)) = 0;
             % smallest door diameter
             subunits{i}.smallestDoorDiam = min(arrayfun(@(x) ridges1D.doors{x}.radius * 2, subunits{i}.doorRidges));
             subunits{i}.smallestDoorDiam(isempty(subunits{i}.smallestDoorDiam)) = 0;
@@ -3905,18 +3965,18 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % edge subunit or not
 %             if fastIntersect(subunits{i}.edgeindices, edge_ind, 'bool')
 %                 subunits{i}.edge = true;
-%                 edge_subs(i) = true;
+%                 edge_subs_log(i) = true;
 %             else
 %                 subunits{i}.edge = false;
 %             end
             if i <= numEdgeSubs
                 subunits{i}.edge = true;
-                edge_subs(i) = true;
+                edge_subs_log(i) = true;
                 % max number of peaks of edge subunits
                 max_numpksE = max(max_numpksE, numel(subunits{i}.peaks));
             else
                 subunits{i}.edge = false;
-                edge_subs(i) = false;
+                edge_subs_log(i) = false;
             end
             % Compute mean local thickness
             if combine_edge_subs && subunits{i}.edge == true
@@ -4010,7 +4070,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         tElapsed = toc(tStart);
         % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Accumulate subunit data:');
 
-        time_log(timeLogIdx).Name = 'Accumulate subunit data';
+        time_log(timeLogIdx).Name = 'Calculate and accumulate subunit data';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
         printTimeInfo(time_log(timeLogIdx));
@@ -4019,7 +4079,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % Compute 'edge subunit' descriptors
         tStart = tic;
 
-
+        % [To-do]
 
         tElapsed = toc(tStart);
         % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Accumulate edge subunit data:');
@@ -4049,10 +4109,15 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 %         subs_r2D    = subs_adjacencyr2D;
 %         subs_doors  = subs_adjacencydoors;
 
+        % Compute # interior subs / # particles surrounding interior subs
+        interior_beads = unique(cell2mat(arrayfun(@(x) subunits{x}.beadNeighbors, ...
+                                find(~edge_subs_log)', 'UniformOutput', false)'));
+        subs2beads = (num_subs - sum(edge_subs_log)) / numel(interior_beads);
+
         tElapsed = toc(tStart);
         % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Compute eigenvalues of adjacency:');
 
-        time_log(timeLogIdx).Name = 'Compute eigenvalues of adjacency';
+        time_log(timeLogIdx).Name = 'Compute additional global descriptors';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
         printTimeInfo(time_log(timeLogIdx));
@@ -4069,17 +4134,19 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         %%%%%******************** DESCRIPTORS *********************%%%%%
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Store data by descriptors
-        data.Descriptors         = struct;
-        data.Descriptors.Global  = struct;
+        data.Descriptors           = struct;
+        data.Descriptors.Global    = struct;
         data.Descriptors.InterSubs = struct;
-        data.Descriptors.Subs    = struct;
+        data.Descriptors.Subs      = struct;
         % Fill global descriptors
         data.Descriptors.Global.names =           {'dx';
                                                    '# Particles';
+                                                   '# Particle Contacts';
                                                    'Void Vol Fraction';
                                                    'Particle Fraction';
                                                    'Void Area Fraction';
                                                    '# Subunits';
+                                                   '# Subunits / # Particles';
                                                    '# Exterior Doors';
                                                    '# Interior Doors';
                                                    '# Paths';
@@ -4091,8 +4158,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Max # Equidistant Particles'};
 
         data.Descriptors.InterSubs.names =         {'Particle Diameter (um)';
+                                                   'Particle Coordination #';
+                                                   'Touching Particle Coord #';
                                                    'Exit Door Diameter (um)';
                                                    'Internal Door Diameter (um)';
+                                                   'Crawl Space Width (um)';
                                                    'Path Lengths (um)';
                                                    'Tortuosity by Length';
                                                    'Tortuosity by Volume (pL)';
@@ -4107,29 +4177,30 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Surface Area (um2 / 1000)';
                                                    'Characteristic Length (um)';
                                                    '# Hallways';
-                                                   '# Adjacent Subunits';
+                                                   '# Crawl Spaces';
                                                    'Normalized Neighbors';
                                                    'Mean Local Thickness (um)';
                                                    '# Peaks';
-                                                   'Largest Enclosed Sphere (um)';
-                                                   'Largest Enclosed Sphere (um^3)';
+                                                   '# Surrounding Particles';
+                                                   'Largest Enclosed Sphere Diameter(um)';
+                                                   'Largest Door Diameter (um)';
                                                    'Smallest Door Diameter (um)';
-                                                   'Smallest Door Spherical Vol (um)';
                                                    'Ellipsoid Axis 1 Length (um)';
                                                    'Ellipsoid Axis 2 Length (um)';
                                                    'Ellipsoid Axis 3 Length (um)';
                                                    'Isotropy';
                                                    'Ligand Concentration (umoles/L)';
-                                                   'Accessible Ligand (umoles)';
-                                                   '# 2D Ridges'};
+                                                   'Accessible Ligand (umoles)'};
 
         % Fill global descriptors
         data.Descriptors.Global.dx                  = dx;
         data.Descriptors.Global.numBeads            = num_beads;
+        data.Descriptors.Global.numContacts         = sum(touching_beads_log);
         data.Descriptors.Global.voidVolFract        = void_vol_fract;
         data.Descriptors.Global.particleVolFract    = particle_fract;
         data.Descriptors.Global.voidAreaFract       = void_area_fract;
         data.Descriptors.Global.numSubs             = num_subs;
+        data.Descriptors.Global.subs2Beads          = subs2beads;
         data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
         data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
         data.Descriptors.Global.numPaths            = length(data.paths.path_lengths);
@@ -4142,10 +4213,13 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % Fill non-subunit descriptors
         % >> beads
         data.Descriptors.InterSubs.beadDiams          = bead_diams;
-        % >> doors
+        data.Descriptors.InterSubs.beadCoord          = bead_struct.CoordCount;
+        data.Descriptors.InterSubs.beadTouch          = bead_struct.TouchingCount;
+        % >> doors & crawl spaces
         data.Descriptors.InterSubs.diamDoors_exterior = cellfun(@(x) x * 2, peaks_e.radius);
         data.Descriptors.InterSubs.diamDoors_interior = sort(arrayfun(@(x) ridges1D.doors{x}.radius * 2, ...
                                                         interior_door_ridges));
+        data.Descriptors.InterSubs.crawlWidth         = ridges2D.crawl_widths(crawl_spaces_log);
         % >> paths
         data.Descriptors.InterSubs.pathLengths        = data.paths.path_lengths;
         data.Descriptors.InterSubs.pathTortuosity_lin = data.paths.tortuosity.linear;
@@ -4167,41 +4241,43 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.surfArea              = zeros(num_subs, 1);
         data.Descriptors.Subs.charLength            = zeros(num_subs, 1);
         data.Descriptors.Subs.numHalls              = zeros(num_subs, 1);
-        data.Descriptors.Subs.numAdjacent           = zeros(num_subs, 1);
+        data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
         data.Descriptors.Subs.normNeigh             = zeros(num_subs, 1);
         data.Descriptors.Subs.meanThickness         = zeros(num_subs, 1);
         data.Descriptors.Subs.numPeaks              = zeros(num_subs, 1);
+        data.Descriptors.Subs.numSurroundBeads      = zeros(num_subs, 1);
         data.Descriptors.Subs.largestSphereDiam     = zeros(num_subs, 1);
-        data.Descriptors.Subs.largestSphereVol      = zeros(num_subs, 1);
+        %data.Descriptors.Subs.largestSphereVol      = zeros(num_subs, 1);
+        data.Descriptors.Subs.largestDoorDiam       = zeros(num_subs, 1);
         data.Descriptors.Subs.smallestDoorDiam      = zeros(num_subs, 1);
-        data.Descriptors.Subs.smallestDoorVol       = zeros(num_subs, 1);
+        %data.Descriptors.Subs.smallestDoorVol       = zeros(num_subs, 1);
         data.Descriptors.Subs.axis1                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis2                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis3                 = zeros(num_subs, 1);
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
-        data.Descriptors.Subs.num2Dridges           = zeros(num_subs, 1);
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
             data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
-            data.Descriptors.Subs.numAdjacent(i)    = subunits{i}.numAdjacent;
+            data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
             data.Descriptors.Subs.normNeigh(i)      = subunits{i}.normNeigh;
             data.Descriptors.Subs.meanThickness(i)  = subunits{i}.meanLocalThickness;
             data.Descriptors.Subs.numPeaks(i)       = subunits{i}.numPeaks;
+            data.Descriptors.Subs.numSurroundBeads(i)  = numel(subunits{i}.beadNeighbors);
             data.Descriptors.Subs.largestSphereDiam(i) = subunits{i}.largestSphereDiam;
-            data.Descriptors.Subs.largestSphereVol(i)  = subunits{i}.largestSphereVol;
+            %data.Descriptors.Subs.largestSphereVol(i)  = subunits{i}.largestSphereVol;
+            data.Descriptors.Subs.largestDoorDiam(i)   = subunits{i}.largestDoorDiam;
             data.Descriptors.Subs.smallestDoorDiam(i)  = subunits{i}.smallestDoorDiam;
-            data.Descriptors.Subs.smallestDoorVol(i)   = subunits{i}.smallestDoorVol;
+            %data.Descriptors.Subs.smallestDoorVol(i)   = subunits{i}.smallestDoorVol;
             data.Descriptors.Subs.axis1(i)          = subunits{i}.ellipse_lengths(1);
             data.Descriptors.Subs.axis2(i)          = subunits{i}.ellipse_lengths(2);
             data.Descriptors.Subs.axis3(i)          = subunits{i}.ellipse_lengths(3);
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
             data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
             data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
-            data.Descriptors.Subs.num2Dridges(i)    = numel(subunits{i}.ridges2D);
         end
 
         tElapsed = toc(tStart);
@@ -4221,7 +4297,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     data.Subunits        = subunits;
     data.Subunits_byhall = subs_byHall;
     data.subs_adjMat     = subs_adjacencysubs;
-    data.edgeSubs        = edge_subs;
+    data.edgeSubs        = edge_subs_log;
     data.voxels          = voxels;
 
     totalTimeElapsed = toc(totalTimeStart);
