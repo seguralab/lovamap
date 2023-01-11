@@ -3796,6 +3796,40 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
+        %%%%%%%***************************************************%%%%%%%
+        %%%%%********* LENGTH OF SUBUNIT USING CONVEX HULL *********%%%%%
+        %%%%%%%***************************************************%%%%%%%        
+        tStart = tic;
+        convhull_longest = zeros(num_subs, 1);
+        for h = 1 : num_subs
+            % start with edge subs, followed by interior subs
+            if h <= numEdgeSubs
+                subs_current = subs_clust_e;
+                i = h;
+            else
+                subs_current = subs_clust;
+                i = h - numEdgeSubs;
+            end
+            KK = convhull(voxels(subs_current.edgeind{i}, :));
+            KK_inds = unique(KK);
+            inds = subs_current.edgeind{i}(KK_inds);
+            for ii = 1 : numel(inds) - 1
+                for jj = ii + 1 : numel(inds)
+                    this_dist = norm(voxels(inds(ii),:) - voxels(inds(jj),:));
+                    if this_dist > convhull_longest(h)
+                        convhull_longest(h) = this_dist;
+                    end
+                end
+            end
+        end
+        tElapsed = toc(tStart);
+        
+        time_log(timeLogIdx).Name = 'Subunit length by convex hull';
+        time_log(timeLogIdx).Time = tElapsed;
+        time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
+        timeLogIdx = timeLogIdx + 1;
+
         %%%%%%%****************************************************%%%%%%%
         %%%%%************* INTEGRIN-BINDING-PROTEIN MAP *************%%%%%
         %%%%%%%****************************************************%%%%%%%
@@ -3935,6 +3969,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             else
                 subunits{i}.charLength = subunits{i}.volume / subunits{i}.surfArea;
             end
+            % end-to-end length using convex hull
+            subunits{i}.convLength = convhull_longest(i);
             % bead neighbors
             subunits{i}.beadNeighbors = neighbors_beads{i};
             % subunit neighbors that are connected by hallways (ridges1D)
@@ -4176,6 +4212,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.names =             {'Volume (pL)';
                                                    'Surface Area (um2 / 1000)';
                                                    'Characteristic Length (um)';
+                                                   'End-to-end Length (um)';
                                                    '# Hallways';
                                                    '# Crawl Spaces';
                                                    'Normalized Neighbors';
@@ -4240,6 +4277,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.volume                = zeros(num_subs, 1);
         data.Descriptors.Subs.surfArea              = zeros(num_subs, 1);
         data.Descriptors.Subs.charLength            = zeros(num_subs, 1);
+        data.Descriptors.Subs.convLength            = zeros(num_subs, 1);
         data.Descriptors.Subs.numHalls              = zeros(num_subs, 1);
         data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
         data.Descriptors.Subs.normNeigh             = zeros(num_subs, 1);
@@ -4261,6 +4299,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
             data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
+            data.Descriptors.Subs.convLength(i)     = subunits{i}.convLength;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
             data.Descriptors.Subs.normNeigh(i)      = subunits{i}.normNeigh;
