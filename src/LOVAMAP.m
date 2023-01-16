@@ -3810,16 +3810,20 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 subs_current = subs_clust;
                 i = h - numEdgeSubs;
             end
-            KK = convhull(voxels(subs_current.edgeind{i}, :));
-            KK_inds = unique(KK);
-            inds = subs_current.edgeind{i}(KK_inds);
-            for ii = 1 : numel(inds) - 1
-                for jj = ii + 1 : numel(inds)
-                    this_dist = norm(voxels(inds(ii),:) - voxels(inds(jj),:));
-                    if this_dist > convhull_longest(h)
-                        convhull_longest(h) = this_dist;
+            if numel(subs_current.edgeind{i}) > 1
+                KK = convhull(voxels(subs_current.edgeind{i}, :));
+                KK_inds = unique(KK);
+                inds = subs_current.edgeind{i}(KK_inds);
+                for ii = 1 : numel(inds) - 1
+                    for jj = ii + 1 : numel(inds)
+                        this_dist = norm(voxels(inds(ii),:) - voxels(inds(jj),:));
+                        if this_dist > convhull_longest(h)
+                            convhull_longest(h) = this_dist;
+                        end
                     end
                 end
+            else
+                convhull_longest(h) = sqrt(3) * dx; % diagonal length of a single voxel
             end
         end
         tElapsed = toc(tStart);
