@@ -300,10 +300,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
                     
-                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-                    bead_data(rmv_beads, :) = [];
+                    %%%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
+                    %%%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+                    %rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+                    %bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
