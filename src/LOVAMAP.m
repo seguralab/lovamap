@@ -4247,9 +4247,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Isotropy';
                                                    'Ligand Concentration (umoles/L)';
                                                    'Accessible Ligand (umoles)';
-                                                   'Centroid x';
-                                                   'Centroid y';
-                                                   'Centroid z'};
+                                                   'x Centroid';
+                                                   'y Centroid';
+                                                   'z Centroid'};
 
         % Fill global descriptors
         data.Descriptors.Global.dx                  = dx;
