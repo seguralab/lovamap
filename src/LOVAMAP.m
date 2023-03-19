@@ -300,10 +300,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
                     
-                    %%%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-                    %%%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-                    %rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-                    %bead_data(rmv_beads, :) = [];
+                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
+                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+                    bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -3265,6 +3265,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     subs_clust.skeleton    = cell(num_subs, 1);
     % Gather 'center' of subunit, which entails peaks and connecting (full) ridges1D
     subs_clust.center      = cell(num_subs, 1);
+    subs_clust.center_r1Dmin_diams = cell(num_subs, 1);
     % Store ridges containing doors
     subs_clust.door_ridges = cell(num_subs, 1);
     subs_clust.edge_ridges = cell(num_subs, 1);
@@ -3339,6 +3340,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 subs_clust.ridges1D_lengths{i}(this_ridge, 2) = norm(voxels(peaks.L7.indices(ridges1D.rp_key(j, 1)), :) - ...
                                                                      voxels(peaks.L7.indices(ridges1D.rp_key(j, 2)), :));
             end
+            % store diameter (EDT*2) at minimum (i.e., at door) along full ridge
+            subs_clust.center_r1Dmin_diams{i} = [subs_clust.center_r1Dmin_diams{i}; ...
+                                                 ridges1D.doors{j}.radius * 2];
         end
         % Add voxels for PEAKS
         subs_clust.skeleton{i} = [subs_clust.skeleton{i}; subs_clust.peaks.ind{i}];
@@ -3548,6 +3552,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         subs_clust_e.skeleton         = cell(numEdgeSubs, 1);
         subs_clust_e.skeleton2D       = cell(numEdgeSubs, 1);
         subs_clust_e.center           = cell(numEdgeSubs, 1);
+        subs_clust_e.center_r1Dmin_diams = cell(numEdgeSubs, 1);
         subs_clust_e.door_ridges      = cell(numEdgeSubs, 1);
         subs_clust_e.edge_ridges      = cell(numEdgeSubs, 1);
         subs_clust_e.hall_ridges      = cell(numEdgeSubs, 1);
@@ -3586,6 +3591,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 subs_clust_e.skeleton{i}     = unique(cell2mat(subs_clust.skeleton(edge_clust_all{i})));
                 subs_clust_e.skeleton2D{i}   = unique(cell2mat(subs_clust.skeleton2D(edge_clust_all{i})));
                 subs_clust_e.center{i}       = unique(cell2mat(subs_clust.center(edge_clust_all{i})));
+                subs_clust_e.center_r1Dmin_diams{i} = unique(cell2mat(subs_clust.center_r1Dmin_diams(edge_clust_all{i})));
                 subs_clust_e.door_ridges{i}  = unique(cell2mat(subs_clust.door_ridges(edge_clust_all{i})));
                 subs_clust_e.edge_ridges{i}  = unique(cell2mat(subs_clust.edge_ridges(edge_clust_all{i})));
                 subs_clust_e.hall_ridges{i}  = unique(cell2mat(subs_clust.hall_ridges(edge_clust_all{i})));
@@ -3603,6 +3609,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 subs_clust_e.skeleton{i}         = subs_clust.skeleton{edge_clust_all{i}};
                 subs_clust_e.skeleton2D{i}       = subs_clust.skeleton2D{edge_clust_all{i}};
                 subs_clust_e.center{i}           = subs_clust.center{edge_clust_all{i}};
+                subs_clust_e.center_r1Dmin_diams{i} = subs_clust.center_r1Dmin_diams{edge_clust_all{i}};
                 subs_clust_e.door_ridges{i}      = subs_clust.door_ridges{edge_clust_all{i}};
                 subs_clust_e.edge_ridges{i}      = subs_clust.edge_ridges{edge_clust_all{i}};
                 subs_clust_e.hall_ridges{i}      = subs_clust.hall_ridges{edge_clust_all{i}};
@@ -3621,6 +3628,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         subs_clust.skeleton(rmv_edge)         = [];
         subs_clust.skeleton2D(rmv_edge)       = [];
         subs_clust.center(rmv_edge)           = [];
+        subs_clust.center_r1Dmin_diams(rmv_edge) = [];
         subs_clust.door_ridges(rmv_edge)      = [];
         subs_clust.edge_ridges(rmv_edge)      = [];
         subs_clust.hall_ridges(rmv_edge)      = [];
@@ -3793,7 +3801,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         timeLogIdx = timeLogIdx + 1;
 
         %%%%%%%***************************************************%%%%%%%
-        %%%%%********* LENGTH OF SUBUNIT USING CONVEX HULL *********%%%%%
+        %%%%%**** END-TO-END LENGTH OF SUBUNIT USING CONVEX HULL ***%%%%%
         %%%%%%%***************************************************%%%%%%%        
         tStart = tic;
         convhull_longest = zeros(num_subs, 1);
@@ -3986,6 +3994,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             end
             % end-to-end length using convex hull
             subunits{i}.convLength = convhull_longest(i);
+            % average 'interior' door diameter of subunit (um)
+            if numel(subunits{i}.EDTofPeaks) == 1
+                subunits{i}.narrowestDiam = subunits{i}.EDTofPeaks * 2;
+            else
+                subunits{i}.narrowestDiam = mean(subs_final.center_r1Dmin_diams{j});
+            end
             % bead neighbors
             subunits{i}.beadNeighbors = neighbors_beads{i};
             % subunit neighbors that are connected by hallways (ridges1D)
@@ -4189,7 +4203,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % Store data by descriptors
         data.Descriptors           = struct;
         data.Descriptors.Global    = struct;
-        data.Descriptors.InterSubs = struct;
+        data.Descriptors.NonSubs = struct;
         data.Descriptors.Subs      = struct;
         % Fill global descriptors
         data.Descriptors.Global.names =           {'dx';
@@ -4211,7 +4225,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Ligand Hotspots Volume Fraction';
                                                    'Max # Equidistant Particles'};
 
-        data.Descriptors.NonSubs.names =          {'Particle Diameter (um)';
+        data.Descriptors.NonSubs.names =         {'Particle Diameter (um)';
                                                    'Particle Coordination #';
                                                    'Touching Particle Coord #';
                                                    'Exit Door Diameter (um)';
@@ -4231,6 +4245,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Surface Area (um2 / 1000)';
                                                    'Characteristic Length (um)';
                                                    'End-to-end Length (um)';
+                                                   'Avg Internal Diam (um)';
+                                                   'Aspect Ratio';
                                                    '# Hallways';
                                                    '# Crawl Spaces';
                                                    '# Surrounding Pores';
@@ -4301,6 +4317,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.surfArea              = zeros(num_subs, 1);
         data.Descriptors.Subs.charLength            = zeros(num_subs, 1);
         data.Descriptors.Subs.convLength            = zeros(num_subs, 1);
+        data.Descriptors.Subs.avgInternalDiam       = zeros(num_subs, 1);
+        data.Descriptors.Subs.aspectRatio           = zeros(num_subs, 1);
         data.Descriptors.Subs.numHalls              = zeros(num_subs, 1);
         data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
         data.Descriptors.Subs.numSurroundPores      = zeros(num_subs, 1);
@@ -4319,14 +4337,16 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
-        data.Descriptors.Subs.xCentroid             = zeros(num_subs, 1);
-        data.Descriptors.Subs.yCentroid             = zeros(num_subs, 1);
-        data.Descriptors.Subs.zCentroid             = zeros(num_subs, 1);
+        data.Descriptors.Subs.x                     = zeros(num_subs, 1);
+        data.Descriptors.Subs.y                     = zeros(num_subs, 1);
+        data.Descriptors.Subs.z                     = zeros(num_subs, 1);
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
             data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
             data.Descriptors.Subs.convLength(i)     = subunits{i}.convLength;
+            data.Descriptors.Subs.avgInternalDiam(i)= subunits{i}.narrowestDiam;
+            data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.narrowestDiam;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
             data.Descriptors.Subs.numSurroundPores(i) = subunits{i}.numSurroundPores;
@@ -4345,9 +4365,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
             data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
             data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
-            data.Descriptors.Subs.xCentroid(i)      = subunits{i}.centerCoord(1);
-            data.Descriptors.Subs.yCentroid(i)      = subunits{i}.centerCoord(2);
-            data.Descriptors.Subs.zCentroid(i)      = subunits{i}.centerCoord(3);
+            data.Descriptors.Subs.x(i)              = subunits{i}.centerCoord(1);
+            data.Descriptors.Subs.y(i)              = subunits{i}.centerCoord(2);
+            data.Descriptors.Subs.z(i)              = subunits{i}.centerCoord(3);
         end
 
         tElapsed = toc(tStart);
