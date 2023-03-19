@@ -4261,7 +4261,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Ellipsoid Axis 2 Length (um)';
                                                    'Ellipsoid Axis 3 Length (um)';
                                                    'Isotropy';
-                                                   'Ligand Concentration (umoles/L)';
+                                                   'Ligand Concentration (umoles / L)';
                                                    'Accessible Ligand (umoles)';
                                                    'x Centroid';
                                                    'y Centroid';
