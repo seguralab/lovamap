@@ -4213,7 +4213,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Void Vol Fraction';
                                                    'Particle Fraction';
                                                    'Void Area Fraction';
-                                                   '# 3-D Pores';
+                                                   '# 3D-Pores';
+                                                   '# Interior 3D-Pores';
                                                    '# Pores / # Particles';
                                                    '# Exterior Doors';
                                                    '# Interior Doors';
@@ -4261,7 +4262,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Ellipsoid Axis 2 Length (um)';
                                                    'Ellipsoid Axis 3 Length (um)';
                                                    'Isotropy';
-                                                   'Ligand Concentration (umoles / L)';
+                                                   'Ligand Concentration (umoles/L)';
                                                    'Accessible Ligand (umoles)';
                                                    'x Centroid';
                                                    'y Centroid';
@@ -4276,6 +4277,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.particleVolFract    = particle_fract;
         data.Descriptors.Global.voidAreaFract       = void_area_fract;
         data.Descriptors.Global.numSubs             = num_subs;
+        data.Descriptors.Global.numIntSubs          = num_subs - sum(edge_subs_log);
         data.Descriptors.Global.subs2Beads          = subs2beads;
         data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
         data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
