@@ -4339,9 +4339,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
-        data.Descriptors.Subs.x                     = zeros(num_subs, 1);
-        data.Descriptors.Subs.y                     = zeros(num_subs, 1);
-        data.Descriptors.Subs.z                     = zeros(num_subs, 1);
+        data.Descriptors.Subs.xCentroid             = zeros(num_subs, 1);
+        data.Descriptors.Subs.yCentroid             = zeros(num_subs, 1);
+        data.Descriptors.Subs.zCentroid             = zeros(num_subs, 1);
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
@@ -4367,9 +4367,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
             data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
             data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
-            data.Descriptors.Subs.x(i)              = subunits{i}.centerCoord(1);
-            data.Descriptors.Subs.y(i)              = subunits{i}.centerCoord(2);
-            data.Descriptors.Subs.z(i)              = subunits{i}.centerCoord(3);
+            data.Descriptors.Subs.xCentroid(i)      = subunits{i}.centerCoord(1);
+            data.Descriptors.Subs.yCentroid(i)      = subunits{i}.centerCoord(2);
+            data.Descriptors.Subs.zCentroid(i)      = subunits{i}.centerCoord(3);
         end
 
         tElapsed = toc(tStart);
