@@ -300,10 +300,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
                     
-                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-                    bead_data(rmv_beads, :) = [];
+%                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
+%                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+%                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+%                    bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -4215,7 +4215,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Void Area Fraction';
                                                    '# 3D-Pores';
                                                    '# Interior 3D-Pores';
-                                                   '# Pores / # Particles';
                                                    '# Exit Doors';
                                                    '# Internal Doors';
                                                    '# Paths';
@@ -4232,7 +4231,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Exit Door Diameter (um)';
                                                    'Internal Door Diameter (um)';
                                                    'Crawl Space Width (um)';
-                                                   'Path Lengths (um)';
+                                                   'Path Length (um)';
                                                    'Tortuosity by Length';
                                                    'Tortuosity by Volume (pL)';
                                                    'Surface Ligand Conc (µmoles / µm^2)';
@@ -4278,7 +4277,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.voidAreaFract       = void_area_fract;
         data.Descriptors.Global.numSubs             = num_subs;
         data.Descriptors.Global.numIntSubs          = num_subs - sum(edge_subs_log);
-        data.Descriptors.Global.subs2Beads          = subs2beads;
         data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
         data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
         data.Descriptors.Global.numPaths            = length(data.paths.path_lengths);
