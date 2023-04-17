@@ -4215,6 +4215,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Void Area Fraction';
                                                    '# 3D-Pores';
                                                    '# Interior 3D-Pores';
+                                                   '# Int 3D-Pores / # Particles Surr Int Pores';
                                                    '# Exit Doors';
                                                    '# Internal Doors';
                                                    '# Paths';
@@ -4277,6 +4278,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.voidAreaFract       = void_area_fract;
         data.Descriptors.Global.numSubs             = num_subs;
         data.Descriptors.Global.numIntSubs          = num_subs - sum(edge_subs_log);
+        data.Descriptors.Global.subs2Beads          = subs2beads;
         data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
         data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
         data.Descriptors.Global.numPaths            = length(data.paths.path_lengths);
