@@ -4209,167 +4209,59 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.names =           {'dx';
                                                    'voxels';
                                                    '# Particles';
-                                                   '# Particle Contacts';
                                                    'Void Vol Fraction';
                                                    'Particle Fraction';
-                                                   'Void Area Fraction';
                                                    '# 3D-Pores';
-                                                   '# Interior 3D-Pores';
-                                                   '# Int 3D-Pores / # Particles Surr Int Pores';
-                                                   '# Exit Doors';
-                                                   '# Internal Doors';
-                                                   '# Paths';
-                                                   'Particle Adj Max Eig';
-                                                   'Peak Adj Max Eig';
-                                                   'Pore Adj Max Eig';
-                                                   'Max # Pks of Edge Pore';
-                                                   'Ligand Hotspots Volume Fraction';
-                                                   'Max # Equidistant Particles'};
+                                                   '# Interior 3D-Pores'};
 
-        data.Descriptors.NonSubs.names =         {'Particle Diameter (um)';
-                                                   'Particle Coordination #';
-                                                   'Touching Particle Coord #';
-                                                   'Exit Door Diameter (um)';
-                                                   'Internal Door Diameter (um)';
-                                                   'Crawl Space Width (um)';
-                                                   'Path Length (um)';
-                                                   'Tortuosity by Length';
-                                                   'Tortuosity by Volume (pL)';
-                                                   'Surface Ligand Conc (µmoles / µm^2)';
-                                                   'Surface Accessible Ligand (µmoles)';
-                                                   'Region Vols, <1 um (pL)';
-                                                   'Region Vols, 10 um (pL)';
-                                                   'Region Vols, 30 um (pL)';
-                                                   'Region Vols, 60 um (pL)'};
+        data.Descriptors.NonSubs.names =         {'Particle Diameter (um)'};
 
         data.Descriptors.Subs.names =             {'Volume (pL)';
-                                                   'Surface Area (um2 / 1000)';
-                                                   'Characteristic Length (um)';
                                                    'End-to-end Length (um)';
                                                    'Avg Internal Diam (um)';
                                                    'Aspect Ratio';
-                                                   '# Hallways';
-                                                   '# Crawl Spaces';
-                                                   '# Surrounding Pores';
-                                                   'Normalized Neighbors';
-                                                   'Mean Local Thickness (um)';
-                                                   '# Peaks';
                                                    '# Surrounding Particles';
                                                    'Largest Enclosed Sphere Diameter(um)';
-                                                   'Largest Door Diameter (um)';
-                                                   'Smallest Door Diameter (um)';
                                                    'Ellipsoid Axis 1 Length (um)';
                                                    'Ellipsoid Axis 2 Length (um)';
                                                    'Ellipsoid Axis 3 Length (um)';
-                                                   'Isotropy';
-                                                   'Ligand Concentration (umoles / L)';
-                                                   'Accessible Ligand (umoles)';
-                                                   'x Centroid';
-                                                   'y Centroid';
-                                                   'z Centroid'};
+                                                   'Isotropy'};
 
         % Fill global descriptors
         data.Descriptors.Global.dx                  = dx;
         data.Descriptors.Global.voxels              = nVoxels;
         data.Descriptors.Global.numBeads            = num_beads;
-        data.Descriptors.Global.numContacts         = sum(touching_beads_log);
         data.Descriptors.Global.voidVolFract        = void_vol_fract;
         data.Descriptors.Global.particleVolFract    = particle_fract;
-        data.Descriptors.Global.voidAreaFract       = void_area_fract;
         data.Descriptors.Global.numSubs             = num_subs;
         data.Descriptors.Global.numIntSubs          = num_subs - sum(edge_subs_log);
-        data.Descriptors.Global.subs2Beads          = subs2beads;
-        data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
-        data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
-        data.Descriptors.Global.numPaths            = length(data.paths.path_lengths);
-        data.Descriptors.Global.beadEigenvalue      = beads_beads_maxe;
-        data.Descriptors.Global.peakEigenvalue      = peaks_peaks_maxe;
-        data.Descriptors.Global.subEigenvalue       = subs_subs_maxe;
-        data.Descriptors.Global.maxNumPksEdge       = max_numpksE;
-        data.Descriptors.Global.RGDhotspotsRatio    = hotspot_ratio;
-        data.Descriptors.Global.maxEquidistBeads    = max(peaks.L7.numBeads);
+
         % Fill non-subunit descriptors
         % >> beads
         data.Descriptors.NonSubs.beadDiams          = bead_diams;
-        data.Descriptors.NonSubs.beadCoord          = bead_struct.CoordCount;
-        data.Descriptors.NonSubs.beadTouch          = bead_struct.TouchingCount;
-        % >> doors & crawl spaces
-        data.Descriptors.NonSubs.diamDoors_exterior = cellfun(@(x) x * 2, peaks_e.radius);
-        data.Descriptors.NonSubs.diamDoors_interior = sort(arrayfun(@(x) ridges1D.doors{x}.radius * 2, ...
-                                                        interior_door_ridges));
-        data.Descriptors.NonSubs.crawlWidth         = ridges2D.crawl_widths(crawl_spaces_log);
-        % >> paths
-        data.Descriptors.NonSubs.pathLengths        = data.paths.path_lengths;
-        data.Descriptors.NonSubs.pathTortuosity_lin = data.paths.tortuosity.linear;
-        data.Descriptors.NonSubs.pathTortuosity_vol = data.paths.tortuosity.volume / 1000;
-        % >> surface subunits
-        data.Descriptors.NonSubs.edgeRGDconc       = zeros(num_2Dedgesubs, 1);
-        data.Descriptors.NonSubs.edgeRGDaccessible = zeros(num_2Dedgesubs, 1);
-        for i = 1 : num_2Dedgesubs
-            data.Descriptors.NonSubs.edgeRGDconc(i)       = edge_2Dsubs{i}.RGDconc;
-            data.Descriptors.NonSubs.edgeRGDaccessible(i) = edge_2Dsubs{i}.RGDaccessible;
-        end
-        % >> regions
-        data.Descriptors.NonSubs.regionVols_1um     = region_vols{1};
-        data.Descriptors.NonSubs.regionVols_10um    = region_vols{2};
-        data.Descriptors.NonSubs.regionVols_30um    = region_vols{3};
-        data.Descriptors.NonSubs.regionVols_60um    = region_vols{4};
+
         % Fill subunit descriptors
         data.Descriptors.Subs.volume                = zeros(num_subs, 1);
-        data.Descriptors.Subs.surfArea              = zeros(num_subs, 1);
-        data.Descriptors.Subs.charLength            = zeros(num_subs, 1);
         data.Descriptors.Subs.convLength            = zeros(num_subs, 1);
         data.Descriptors.Subs.avgInternalDiam       = zeros(num_subs, 1);
         data.Descriptors.Subs.aspectRatio           = zeros(num_subs, 1);
-        data.Descriptors.Subs.numHalls              = zeros(num_subs, 1);
-        data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
-        data.Descriptors.Subs.numSurroundPores      = zeros(num_subs, 1);
-        data.Descriptors.Subs.normNeigh             = zeros(num_subs, 1);
-        data.Descriptors.Subs.meanThickness         = zeros(num_subs, 1);
-        data.Descriptors.Subs.numPeaks              = zeros(num_subs, 1);
         data.Descriptors.Subs.numSurroundBeads      = zeros(num_subs, 1);
         data.Descriptors.Subs.largestSphereDiam     = zeros(num_subs, 1);
-        %data.Descriptors.Subs.largestSphereVol      = zeros(num_subs, 1);
-        data.Descriptors.Subs.largestDoorDiam       = zeros(num_subs, 1);
-        data.Descriptors.Subs.smallestDoorDiam      = zeros(num_subs, 1);
-        %data.Descriptors.Subs.smallestDoorVol       = zeros(num_subs, 1);
         data.Descriptors.Subs.axis1                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis2                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis3                 = zeros(num_subs, 1);
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
-        data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
-        data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
-        data.Descriptors.Subs.xCentroid             = zeros(num_subs, 1);
-        data.Descriptors.Subs.yCentroid             = zeros(num_subs, 1);
-        data.Descriptors.Subs.zCentroid             = zeros(num_subs, 1);
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
-            data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
-            data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
             data.Descriptors.Subs.convLength(i)     = subunits{i}.convLength;
             data.Descriptors.Subs.avgInternalDiam(i)= subunits{i}.narrowestDiam;
             data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.narrowestDiam;
-            data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
-            data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
-            data.Descriptors.Subs.numSurroundPores(i) = subunits{i}.numSurroundPores;
-            data.Descriptors.Subs.normNeigh(i)      = subunits{i}.normNeigh;
-            data.Descriptors.Subs.meanThickness(i)  = subunits{i}.meanLocalThickness;
-            data.Descriptors.Subs.numPeaks(i)       = subunits{i}.numPeaks;
             data.Descriptors.Subs.numSurroundBeads(i)  = numel(subunits{i}.beadNeighbors);
             data.Descriptors.Subs.largestSphereDiam(i) = subunits{i}.largestSphereDiam;
-            %data.Descriptors.Subs.largestSphereVol(i)  = subunits{i}.largestSphereVol;
-            data.Descriptors.Subs.largestDoorDiam(i)   = subunits{i}.largestDoorDiam;
-            data.Descriptors.Subs.smallestDoorDiam(i)  = subunits{i}.smallestDoorDiam;
-            %data.Descriptors.Subs.smallestDoorVol(i)   = subunits{i}.smallestDoorVol;
             data.Descriptors.Subs.axis1(i)          = subunits{i}.ellipse_lengths(1);
             data.Descriptors.Subs.axis2(i)          = subunits{i}.ellipse_lengths(2);
             data.Descriptors.Subs.axis3(i)          = subunits{i}.ellipse_lengths(3);
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
-            data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
-            data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
-            data.Descriptors.Subs.xCentroid(i)      = subunits{i}.centerCoord(1);
-            data.Descriptors.Subs.yCentroid(i)      = subunits{i}.centerCoord(2);
-            data.Descriptors.Subs.zCentroid(i)      = subunits{i}.centerCoord(3);
         end
 
         tElapsed = toc(tStart);
