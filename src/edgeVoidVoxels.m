@@ -10,8 +10,8 @@ function edge_ind = edgeVoidVoxels(bead_voxels, vsVoxels, shape, dx, thickness_s
         bin_image(:,1,:) = 1; % left
         bin_image(:,:,1) = 1; % bottom
         bin_image(shape(1),:,:) = 1; % back
-        bin_image(:,shape(1),:) = 1; % right
-        bin_image(:,:,shape(1)) = 1; % top
+        bin_image(:,shape(2),:) = 1; % right
+        bin_image(:,:,shape(3)) = 1; % top
         edge_ind = find(bin_image);
     else
         edt_edge = dx * bwdist(bin_image);
