@@ -316,7 +316,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
                     if crop_percent < 1
                         % Crop beads by only including cropPercent of domain
-                        [bead_data, domain] = cropBeadDomain(bead_data, domain, crop_percent);
+%                        [bead_data, domain] = cropBeadDomain(bead_data, domain, crop_percent);
                     end
 
                     % Set resolution of spheres
