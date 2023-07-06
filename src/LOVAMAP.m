@@ -126,7 +126,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
             if crop_percent < 1
                 nVoxelsOld = nVoxels;
-
+ 
                 [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
                                                          crop_percent, dx);
                 % Shape
@@ -134,7 +134,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 nVPDy = (domain(4) - domain(3)) / dx;
                 nVPDz = (domain(6) - domain(5)) / dx;
                 nVoxels = nVPDx * nVPDy * nVPDz;
-
+                shape = [nVPDx, nVPDy, nVPDz];
+                %shape_cropped = [nVPDx, nVPDy, nVPDz];
+ 
                 if abs(round(nVPDx) - nVPDx) < 1e-12
                     nVPDx = round(nVPDx);
                 else
@@ -150,28 +152,17 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 else
                     error('Number of voxels in z is not an integer.')
                 end
-
-                %shape_cropped = [nVPDx, nVPDy, nVPDz];
-
+                % Update beads
                 bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
                                                  nVoxelsOld, crop_mask);
-                %%%%% THERE'S A BUG HERE... NEED TO RE-ORGANIZE
-                bead_struct.EdgeIndices = cropToDomain(bead_struct.EdgeIndices, ...
-                                                       nVoxelsOld, crop_mask);
-                bead_struct.Shell = cropToDomain(bead_struct.Shell, ...
-                                                 nVoxelsOld, crop_mask);
-
-                bead_struct.Beads = bead_struct.Beads(~cellfun(@isempty, bead_struct.Beads));
-                bead_struct.EdgeIndices = bead_struct.EdgeIndices(~cellfun(@isempty, bead_struct.EdgeIndices));
-                bead_struct.Shell = bead_struct.Shell(~cellfun(@isempty, bead_struct.Shell));
-
-                shape = [nVPDx, nVPDy, nVPDz];
-                % Update bead struct
-                bead_struct.Shape     = shape;
-                bead_struct.DomainMin = [domain(1), domain(3), domain(5)];
-                bead_struct.AllBeads  = cell2mat(bead_struct.Beads);
-                bead_struct.AllEdges  = cell2mat(bead_struct.EdgeIndices);
-                bead_struct.AllShells = cell2mat(bead_struct.Shell);
+                remove_beads = false(size(bead_struct.Beads, 1), 1);
+                for i = 1 : size(bead_struct.Beads, 1)
+                    if isempty(bead_struct.Beads{i})
+                        remove_beads(i) = true;
+                    end
+                end
+                bead_struct.Beads(remove_beads) = [];  
+                num_beads = size(bead_struct.Beads, 1);
             end
 
             data.numVoxels = nVoxels;
