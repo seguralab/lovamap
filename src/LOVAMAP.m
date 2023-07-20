@@ -4236,7 +4236,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.names =             {'Volume (pL)';
                                                    'Surface Area (um2 / 1000)';
                                                    'Characteristic Length (um)';
-                                                   'End-to-end Length (um)';
+                                                   'Longest Length (um)';
                                                    'Avg Internal Diam (um)';
                                                    'Aspect Ratio';
                                                    '# Hallways';
