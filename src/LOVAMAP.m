@@ -86,7 +86,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             nVPDx = (domain(2) - domain(1)) / dx;
             nVPDy = (domain(4) - domain(3)) / dx;
             nVPDz = (domain(6) - domain(5)) / dx;
-            nVoxels = nVPDx * nVPDy * nVPDz;
 
             if abs(round(nVPDx) - nVPDx) < 1e-12
                 nVPDx = round(nVPDx);
@@ -105,6 +104,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             end
 
             shape = [nVPDx, nVPDy, nVPDz];
+            nVoxels = nVPDx * nVPDy * nVPDz;
 
             % Create 3D grid of voxel coordinates (center of voxel cube)
             voxels = centeredGrid3D(domain, dx);
@@ -133,8 +133,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 nVPDx = (domain(2) - domain(1)) / dx;
                 nVPDy = (domain(4) - domain(3)) / dx;
                 nVPDz = (domain(6) - domain(5)) / dx;
-                nVoxels = nVPDx * nVPDy * nVPDz;
-                shape = [nVPDx, nVPDy, nVPDz];
                 %shape_cropped = [nVPDx, nVPDy, nVPDz];
  
                 if abs(round(nVPDx) - nVPDx) < 1e-12
@@ -152,6 +150,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 else
                     error('Number of voxels in z is not an integer.')
                 end
+                nVoxels = nVPDx * nVPDy * nVPDz;
+                shape = [nVPDx, nVPDy, nVPDz];
                 % Update beads
                 bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
                                                  nVoxelsOld, crop_mask);
@@ -345,7 +345,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     nVPDx = (domain(2) - domain(1)) / dx;
                     nVPDy = (domain(4) - domain(3)) / dx;
                     nVPDz = (domain(6) - domain(5)) / dx;
-                    nVoxels = nVPDx * nVPDy * nVPDz;
 
                     if abs(round(nVPDx) - nVPDx) < 1e-12
                         nVPDx = round(nVPDx);
@@ -362,6 +361,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     else
                         error('Number of voxels in z is not an integer.')
                     end
+                    nVoxels = nVPDx * nVPDy * nVPDz;
 
                     shape = [nVPDx, nVPDy, nVPDz];
                     data.numVoxels = nVoxels;
@@ -382,7 +382,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         nVPDx = (domain(2) - domain(1)) / dx;
                         nVPDy = (domain(4) - domain(3)) / dx;
                         nVPDz = (domain(6) - domain(5)) / dx;
-                        nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
 
                         if abs(round(nVPDx) - nVPDx) < 1e-12
                             nVPDx = round(nVPDx);
@@ -399,6 +398,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         else
                             error('Number of voxels in z is not an integer.')
                         end
+                        nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
 
                         %shape_cropped = [nVPDx, nVPDy, nVPDz];
 
@@ -453,7 +453,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     nVPDx = (domain(2) - domain(1)) / dx;
                     nVPDy = (domain(4) - domain(3)) / dx;
                     nVPDz = (domain(6) - domain(5)) / dx;
-                    nVoxels = nVPDx * nVPDy * nVPDz;
 
                     if abs(round(nVPDx) - nVPDx) < 1e-12
                         nVPDx = round(nVPDx);
@@ -472,6 +471,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     end
 
                     shape = [nVPDx, nVPDy, nVPDz];
+                    nVoxels = nVPDx * nVPDy * nVPDz;
 
                     if crop_percent < 1
                         [voxels, domain, voxel_indices] = cropBeadDomain_voxels(voxels, domain, ...
@@ -480,7 +480,6 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         nVPDx = (domain(2) - domain(1)) / dx;
                         nVPDy = (domain(4) - domain(3)) / dx;
                         nVPDz = (domain(6) - domain(5)) / dx;
-                        nVoxels = nVPDx * nVPDy * nVPDz;
 
                         if abs(round(nVPDx) - nVPDx) < 1e-12
                             nVPDx = round(nVPDx);
@@ -498,6 +497,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                             error('Number of voxels in z is not an integer.')
                         end
                         shape_cropped = [nVPDx, nVPDy, nVPDz];
+                        nVoxels = nVPDx * nVPDy * nVPDz;
 
                         % collect rows in cropped domain
                         [beads_sorted, sort_ind] = sort(beads(:, 1));
