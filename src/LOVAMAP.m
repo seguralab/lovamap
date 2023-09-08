@@ -4239,7 +4239,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Longest Length (um)';
                                                    'Avg Internal Diam (um)';
                                                    'Aspect Ratio';
-                                                   '# Hallways';
+                                                   '# Connected Pores';
                                                    '# Crawl Spaces';
                                                    '# Surrounding Pores';
                                                    'Normalized Neighbors';
