@@ -4207,8 +4207,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    '# 3D-Pores';
                                                    '# Interior 3D-Pores';
                                                    '# Int 3D-Pores / # Particles Surr Int Pores';
-                                                   '# Exit Doors';
-                                                   '# Internal Doors';
+                                                   '# Exterior Doors';
+                                                   '# Interior Doors';
                                                    '# Paths';
                                                    'Particle Adj Max Eig';
                                                    'Peak Adj Max Eig';
