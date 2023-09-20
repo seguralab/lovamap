@@ -291,10 +291,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
                     
-%                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-%                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-%                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-%                    bead_data(rmv_beads, :) = [];
+%                   %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
+%                   %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+%                   rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+%                   bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -3998,10 +3998,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % subunit neighbors that are adjacent (ridges2D)
             subunits{i}.subNeighborsr2D = neighbors_subsr2D{i};
             % # of hallways leaving subunit
-            subunits{i}.numHalls = numel(subunits{i}.subNeighborsr1D);
+            subunits{i}.numHalls = numel(subs_final.hall_ridges{j}) + numel(subs_final.edge_ridges{j});
             % # of crawl spaces
             subunits{i}.numCrawlSpaces = numel(subunits{i}.ridges2D(ridges2D.crawl_log(subunits{i}.ridges2D)));
-            % # of adjacent subunits
+            % # of connected pores
+            subunits{i}.numConnectPores = numel(subunits{i}.subNeighborsr1D);
+            % # of surrounding pores
             subunits{i}.numSurroundPores = numel(subunits{i}.subNeighborsr2D);
             % ratio of halls to crawl spaces (normalized connectivity)
             subunits{i}.normNeigh = subunits{i}.numHalls / subunits{i}.numCrawlSpaces;
@@ -4040,10 +4042,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             if combine_edge_subs && subunits{i}.edge == true
                 subunits{i}.meanLocalThickness = NaN;
             else
-                local_thick_mat = localThickness(subunits{i}.indices, ...
-                                  subs_final.skeleton2D{j}, data.EDT(subs_final.skeleton2D{j}), ...
-                                  voxels, dx, shape);
-                subunits{i}.meanLocalThickness = (sum(local_thick_mat) * dx^3) / (subunits{i}.volume * 1000);
+                if subunits{i}.volume > 800
+                    subunits{i}.meanLocalThickness = NaN;
+                else
+                    local_thick_mat = localThickness(subunits{i}.indices, ...
+                                      subs_final.skeleton2D{j}, data.EDT(subs_final.skeleton2D{j}), ...
+                                      voxels, dx, shape);
+                    subunits{i}.meanLocalThickness = (sum(local_thick_mat) * dx^3) / (subunits{i}.volume * 1000);
+                end
             end
             % EDT (from center) along edge of subunit
             subunits{i}.edgeEDT = subs_final.edgeEDT{j};
@@ -4062,12 +4068,47 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % ellipsoid are chosen as the squareroot of the eigenvalues (= the SV), meaning
         % the lengths of the ellipsoid axes are sqrt(eg's) * 2
         ellipse_data = ellipseData(subunits, 0, 0, 0, 0);
+        ellipse_class = zeros(num_subs, 1);
         for i = 1 : num_subs
             % convert eigenvalues to ellipsoid lengths
             subunits{i}.ellipse_lengths = sqrt(ellipse_data(i, 1 : 3)) .* 2;
+            % By definition, A >= B >= C
+            A = subunits{i}.ellipse_lengths(1);
+            B = subunits{i}.ellipse_lengths(2);
+            C = subunits{i}.ellipse_lengths(3);
             if sum(subunits{i}.ellipse_lengths < dx * 5e-05) > 0 % problems with nearly-0 values
                 subunits{i}.ellipse_lengths = zeros(1, 3);
+                A = 0;
+                B = 0;
+                C = 0;
             end
+            % compute ellipsoid-shape metric
+
+            % KEY: [0, 1, 2, 3] => [undefined, sphere, pancake, tube]
+
+            if sum(subunits{i}.ellipse_lengths == 0)
+                % CASE 0: Empty (set to 0)
+                ellipse_class(i) = 0;
+            elseif C / A >= 0.8
+                % Case 1: SPHERE = 1
+                % axis 3 is at least 80% the length of axis 1 (i.e., all axes are similar in length)
+                ellipse_class(i) = 1;
+            elseif (B - C) / (A - C) > 0.5 && C / A < (1/3)
+                % Case 2: PANCAKE = 2
+                % axis 1 and 2 are similar relative to axis 3, and
+                % axis 3 is under 1/3 the length of axis 1
+                ellipse_class(i) = 2;
+            elseif (B - C) / (A - C) < 0.5 && B / A < (1/3)
+                % Case 3: TUBE = 3
+                % axis 2 and 3 are similar relative to axis 1, and
+                % axis 2 is under 1/3 the length of axis 1
+                ellipse_class(i) = 3;
+            else
+                % Case 4: Undefined (set to 0)
+                ellipse_class(i) = 0;
+            end
+            subunits{i}.ellipse_class = ellipse_class(i);
+            % isotropy
             subunits{i}.isotropy = abs(ellipse_data(i, 4));
         end
 
@@ -4239,8 +4280,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Longest Length (um)';
                                                    'Avg Internal Diam (um)';
                                                    'Aspect Ratio';
-                                                   '# Connected Pores';
+                                                   '# Hallways';
                                                    '# Crawl Spaces';
+                                                   '# Connected Pores';
                                                    '# Surrounding Pores';
                                                    'Normalized Neighbors';
                                                    'Mean Local Thickness (um)';
@@ -4252,6 +4294,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Ellipsoid Axis 1 Length (um)';
                                                    'Ellipsoid Axis 2 Length (um)';
                                                    'Ellipsoid Axis 3 Length (um)';
+                                                   'Ellipsoid Classification';
                                                    'Isotropy';
                                                    'Ligand Concentration (umoles / L)';
                                                    'Accessible Ligand (umoles)';
@@ -4314,6 +4357,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.aspectRatio           = zeros(num_subs, 1);
         data.Descriptors.Subs.numHalls              = zeros(num_subs, 1);
         data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
+        data.Descriptors.Subs.numConnectPores       = zeros(num_subs, 1);
         data.Descriptors.Subs.numSurroundPores      = zeros(num_subs, 1);
         data.Descriptors.Subs.normNeigh             = zeros(num_subs, 1);
         data.Descriptors.Subs.meanThickness         = zeros(num_subs, 1);
@@ -4327,6 +4371,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.axis1                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis2                 = zeros(num_subs, 1);
         data.Descriptors.Subs.axis3                 = zeros(num_subs, 1);
+        data.Descriptors.Subs.ellipseClass          = zeros(num_subs, 1);
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
@@ -4342,6 +4387,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.narrowestDiam;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
+            data.Descriptors.Subs.numConnectPores(i)= subunits{i}.numConnectPores;
             data.Descriptors.Subs.numSurroundPores(i) = subunits{i}.numSurroundPores;
             data.Descriptors.Subs.normNeigh(i)      = subunits{i}.normNeigh;
             data.Descriptors.Subs.meanThickness(i)  = subunits{i}.meanLocalThickness;
@@ -4355,6 +4401,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.axis1(i)          = subunits{i}.ellipse_lengths(1);
             data.Descriptors.Subs.axis2(i)          = subunits{i}.ellipse_lengths(2);
             data.Descriptors.Subs.axis3(i)          = subunits{i}.ellipse_lengths(3);
+            data.Descriptors.Subs.ellipseClass(i)   = subunits{i}.ellipse_class;
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
             data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
             data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
