@@ -4,7 +4,7 @@ LOVAMAP
 
 DUKE UNIVERSITY RESEARCH LICENSE 
 
-Duke University has developed certain software code and associated documentation which it wants to make available without charge to anyone for research or experimental use. This license is designed to guarantee freedom to use the software for these aforementioned purposes only. If you wish to distribute or make other use of the software, you may purchase a license to do so from Duke University.
+Duke University has developed certain software code and associated documentation which it wants to make available without charge to anyone for research or experimental use “Change to non-commercial use”. This license is designed to guarantee freedom to use the software for these aforementioned purposes only. If you wish to distribute or make other use “change to commercial use” of the software, you may purchase a license to do so from Duke University.
 
 The accompanying source/object code and any documentation is made available to you under the terms of this Duke University Research License (this “DURL”). By clicking the “ACCEPT” button, or by downloading or installing or using the code, you are consenting to be bound by this DURL. If you do not agree to the terms and conditions of this license, do not click the “ACCEPT” button, and do not download or install or use any part of the code or documentation.
 
