@@ -4042,7 +4042,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             if combine_edge_subs && subunits{i}.edge == true
                 subunits{i}.meanLocalThickness = NaN;
             else
-                if subunits{i}.volume > 800
+                if subunits{i}.volume * dx > 400
                     subunits{i}.meanLocalThickness = NaN;
                 else
                     local_thick_mat = localThickness(subunits{i}.indices, ...
