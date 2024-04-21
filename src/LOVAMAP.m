@@ -291,10 +291,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
                     
-%                   %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-%                   %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-%                   rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-%                   bead_data(rmv_beads, :) = [];
+                   %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
+                   % %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+                   % rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+                   % bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -307,7 +307,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
                     if crop_percent < 1
                         % Crop beads by only including cropPercent of domain
-%                        [bead_data, domain] = cropBeadDomain(bead_data, domain, crop_percent);
+                        [bead_data, domain] = cropBeadDomain(bead_data, domain, crop_percent);
                     end
 
                     % Set resolution of spheres
@@ -374,53 +374,53 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                   shell_thickness, dx, shape);
 
                     if crop_percent < 1
-                        nVoxelsOld = nVoxels;
-
-                        [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
-                                                                    crop_percent, dx);
-                        % Shape
-                        nVPDx = (domain(2) - domain(1)) / dx;
-                        nVPDy = (domain(4) - domain(3)) / dx;
-                        nVPDz = (domain(6) - domain(5)) / dx;
-
-                        if abs(round(nVPDx) - nVPDx) < 1e-12
-                            nVPDx = round(nVPDx);
-                        else
-                            error('Number of voxels in x is not an integer.')
-                        end
-                        if abs(round(nVPDy) - nVPDy) < 1e-12
-                            nVPDy = round(nVPDy);
-                        else
-                            error('Number of voxels in y is not an integer.')
-                        end
-                        if abs(round(nVPDz) - nVPDz) < 1e-12
-                            nVPDz = round(nVPDz);
-                        else
-                            error('Number of voxels in z is not an integer.')
-                        end
-                        nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
-
-                        %shape_cropped = [nVPDx, nVPDy, nVPDz];
-
-                        bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
-                                                            nVoxelsOld, crop_mask);
-                        %%%%% THERE'S A BUG HERE... NEED TO RE-ORGANIZE
-                        bead_struct.EdgeIndices = cropToDomain(bead_struct.EdgeIndices, ...
-                                                                nVoxelsOld, crop_mask);
-                        bead_struct.Shell = cropToDomain(bead_struct.Shell, ...
-                                                            nVoxelsOld, crop_mask);
-
-                        bead_struct.Beads = bead_struct.Beads(~cellfun(@isempty, bead_struct.Beads));
-                        bead_struct.EdgeIndices = bead_struct.EdgeIndices(~cellfun(@isempty, bead_struct.EdgeIndices));
-                        bead_struct.Shell = bead_struct.Shell(~cellfun(@isempty, bead_struct.Shell));
-
-                        shape = [nVPDx, nVPDy, nVPDz];
-                        % Update bead struct
-                        bead_struct.Shape     = shape;
-                        bead_struct.DomainMin = [domain(1), domain(3), domain(5)];
-                        bead_struct.AllBeads  = cell2mat(bead_struct.Beads);
-                        bead_struct.AllEdges  = cell2mat(bead_struct.EdgeIndices);
-                        bead_struct.AllShells = cell2mat(bead_struct.Shell);
+                        % nVoxelsOld = nVoxels;
+                        % 
+                        % [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
+                        %                                             crop_percent, dx);
+                        % % Shape
+                        % nVPDx = (domain(2) - domain(1)) / dx;
+                        % nVPDy = (domain(4) - domain(3)) / dx;
+                        % nVPDz = (domain(6) - domain(5)) / dx;
+                        % 
+                        % if abs(round(nVPDx) - nVPDx) < 1e-12
+                        %     nVPDx = round(nVPDx);
+                        % else
+                        %     error('Number of voxels in x is not an integer.')
+                        % end
+                        % if abs(round(nVPDy) - nVPDy) < 1e-12
+                        %     nVPDy = round(nVPDy);
+                        % else
+                        %     error('Number of voxels in y is not an integer.')
+                        % end
+                        % if abs(round(nVPDz) - nVPDz) < 1e-12
+                        %     nVPDz = round(nVPDz);
+                        % else
+                        %     error('Number of voxels in z is not an integer.')
+                        % end
+                        % nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
+                        % 
+                        % %shape_cropped = [nVPDx, nVPDy, nVPDz];
+                        % 
+                        % bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
+                        %                                     nVoxelsOld, crop_mask);
+                        % %%%%% THERE'S A BUG HERE... NEED TO RE-ORGANIZE
+                        % bead_struct.EdgeIndices = cropToDomain(bead_struct.EdgeIndices, ...
+                        %                                         nVoxelsOld, crop_mask);
+                        % bead_struct.Shell = cropToDomain(bead_struct.Shell, ...
+                        %                                     nVoxelsOld, crop_mask);
+                        % 
+                        % bead_struct.Beads = bead_struct.Beads(~cellfun(@isempty, bead_struct.Beads));
+                        % bead_struct.EdgeIndices = bead_struct.EdgeIndices(~cellfun(@isempty, bead_struct.EdgeIndices));
+                        % bead_struct.Shell = bead_struct.Shell(~cellfun(@isempty, bead_struct.Shell));
+                        % 
+                        % shape = [nVPDx, nVPDy, nVPDz];
+                        % % Update bead struct
+                        % bead_struct.Shape     = shape;
+                        % bead_struct.DomainMin = [domain(1), domain(3), domain(5)];
+                        % bead_struct.AllBeads  = cell2mat(bead_struct.Beads);
+                        % bead_struct.AllEdges  = cell2mat(bead_struct.EdgeIndices);
+                        % bead_struct.AllShells = cell2mat(bead_struct.Shell);
 
                     end
                     % Compute particle diameter distribution
@@ -681,6 +681,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
     % Calculate void volume fraction within void space
     porosity = num_VsVoxels / sum(in_log);
+
+    nVoxels
 
     % Calculate void area fraction along 2D slice
     zgMin = ceil(data.domain(5) / dx);
@@ -3929,6 +3931,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i} = struct;
             % subunit #
             subunits{i}.num = i;
+            % unique identifier
+            subunits{i}.uniqueID = generateRandomID();
             % all voxel indices that make up subunit
             subunits{i}.indices = subs_final.indices{j};
             % edge voxel indices
@@ -4061,6 +4065,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             sub_volume               = subunits{i}.volume * 1000; % liters
             subunits{i}.RGDconc      = (tot_ligand * 1e15) / (sub_volume * 6.02e17);
         end
+        % Compute void volume fraction of interior pores only
+        int_inds = 0;
+        for i = 1 : num_subs
+            if ~subunits{i}.edge
+                int_inds = int_inds + numel(subunits{i}.indices);
+            end
+        end
+        porosity_int = int_inds / sum(in_log);
 
         % Get ellipsoid/orientation/isotropy/directionality data
         % Column 1 : 3 of ellipse_data gives the eigenvalues of the PCA for
@@ -4159,11 +4171,16 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i}.touchingBeadindices = edge_shellinds;
             % Store edge ligand information
             num_edgeshellvoxs = sum(edge_shellbool);
-            SA_edgeshell = num_edgeshellvoxs * dx^2;
+            num_edgeopenvoxs = sum(~edge_shellbool);
+            SA_edgeshell = round2sigdig(num_edgeshellvoxs * dx^2, dx);
+            SA_edgeopen  = round2sigdig(num_edgeopenvoxs * dx^2, dx);
             tot_equiv_vol = SA_edgeshell * shell_thickness; % in um^3
             % using conversion:
             % 1 um^3 = 1e-15 L
             subunits{i}.RGDaccessible = RGD_conc * tot_equiv_vol * 1e-15;
+            % Storing particle surface area of pore and open (non-particle) surface area of pore
+            subunits{i}.SA_beads = SA_edgeshell;
+            subunits{i}.SA_open  = SA_edgeopen;
         end
 
         tElapsed = toc(tStart);
@@ -4245,6 +4262,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Void Vol Fraction';
                                                    'Particle Fraction';
                                                    'Void Area Fraction';
+                                                   'Void Vol Fraction of Interior Pores'
                                                    '# 3D-Pores';
                                                    '# Interior 3D-Pores';
                                                    '# Int 3D-Pores / # Particles Surr Int Pores';
@@ -4298,9 +4316,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Isotropy';
                                                    'Ligand Concentration (umoles / L)';
                                                    'Accessible Ligand (umoles)';
+                                                   'Particle Surface Area (um^2)';
+                                                   'Open (Non-Particle) Surface Area (um^2)';
                                                    'x Centroid';
                                                    'y Centroid';
-                                                   'z Centroid'};
+                                                   'z Centroid';
+                                                   'UniqueID'};
 
         % Fill global descriptors
         data.Descriptors.Global.dx                  = dx;
@@ -4310,6 +4331,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.voidVolFract        = void_vol_fract;
         data.Descriptors.Global.particleVolFract    = particle_fract;
         data.Descriptors.Global.voidAreaFract       = void_area_fract;
+        data.Descriptors.Global.voidVolFractInt     = porosity_int;
         data.Descriptors.Global.numSubs             = num_subs;
         data.Descriptors.Global.numIntSubs          = num_subs - sum(edge_subs_log);
         data.Descriptors.Global.subs2Beads          = subs2beads;
@@ -4375,9 +4397,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.isotropy              = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDconc               = zeros(num_subs, 1);
         data.Descriptors.Subs.RGDaccessible         = zeros(num_subs, 1);
+        data.Descriptors.Subs.SAparticle            = zeros(num_subs, 1);
+        data.Descriptors.Subs.SAopen                = zeros(num_subs, 1);
         data.Descriptors.Subs.xCentroid             = zeros(num_subs, 1);
         data.Descriptors.Subs.yCentroid             = zeros(num_subs, 1);
         data.Descriptors.Subs.zCentroid             = zeros(num_subs, 1);
+        data.Descriptors.Subs.uniqueID              = strings(num_subs, 1);           
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
@@ -4405,9 +4430,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.isotropy(i)       = subunits{i}.isotropy;
             data.Descriptors.Subs.RGDconc(i)        = subunits{i}.RGDconc;
             data.Descriptors.Subs.RGDaccessible(i)  = subunits{i}.RGDaccessible;
+            data.Descriptors.Subs.SAparticle(i)     = subunits{i}.SA_beads;
+            data.Descriptors.Subs.SAopen(i)         = subunits{i}.SA_open;
             data.Descriptors.Subs.xCentroid(i)      = subunits{i}.centerCoord(1);
             data.Descriptors.Subs.yCentroid(i)      = subunits{i}.centerCoord(2);
             data.Descriptors.Subs.zCentroid(i)      = subunits{i}.centerCoord(3);
+            data.Descriptors.Subs.uniqueID(i)       = subunits{i}.uniqueID;
         end
 
         tElapsed = toc(tStart);
