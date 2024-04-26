@@ -3865,7 +3865,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
         % TODO Janky crop version to temporarily produce better hotspot data
         ligand_map_crop = ligand_map;
-        ligand_map_crop(:, :, (size(ligand_map, 3) - shell_thickness + 1) : end) = 0;
+        ligand_map_crop(:, :, (size(ligand_map, 3) - (shell_thickness + 1) * dx) : end) = 0;
 
         % Used for figuring out what voxels remain in the convex hull
         cropHeight = domain(6) - dx * shell_thickness;
