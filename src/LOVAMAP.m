@@ -3854,13 +3854,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         % 1 um^3 = 1e-15 L
         % 1 micromole = 6.02e17 molecules
         cell_diameter = 10;
+        moving_window_diam = domain(2) / 60; % arbitrarily scaled to what we developed LOVAMAP on
         RGD_conc      = 500; % in micromoles/liter (per particle)
         % the RGD_cutoff value was chosen as 90% of the # of molecules per
         % voxel when dx = 2
         RGD_cutoff    = 2167200; % in # of molecules (old value:  1721136)
         % Generate ligand map, which gives avg # of RGD molecules at each voxel
         ligand_map  = ligandMap('shell', 'average', 'sphere', 'all', bead_struct, ...
-                                cell_diameter, RGD_conc, vsVoxel_log, shape, dx);
+                                moving_window_diam, RGD_conc, vsVoxel_log, shape, dx);
 
         % TODO Janky crop version to temporarily produce better hotspot data
         ligand_map_crop = ligand_map;
