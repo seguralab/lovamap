@@ -3933,7 +3933,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % subunit #
             subunits{i}.num = i;
             % unique identifier
-            subunits{i}.uniqueID = generateRandomID();
+            subunits{i}.uniqueID = [num2str(subunits{i}.num) '-' generateRandomID()];
             % all voxel indices that make up subunit
             subunits{i}.indices = subs_final.indices{j};
             % edge voxel indices
