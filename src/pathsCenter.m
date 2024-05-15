@@ -152,7 +152,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
     path_tortuosity_vol = path_tortuosity_vol(path_tortuosity_vol ~= 0);
 
     % For each path, store the bottleneck widths (diameter) along 1D-ridges
-    path_necks  = cell(length(edge_pks) * 3, 1);
+    path_necks  = cell(length(edge_pks), 1);
     for i = 1 : numel(path_edges)
         necks = zeros(numel(path_edges{i}), 1);
         for j = 1 : numel(path_edges{i})
