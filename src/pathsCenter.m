@@ -8,7 +8,7 @@
 % voxels:             list of [x,y,z] coordinates of all gridpoints in domain
 % domain:             [xmin, xmax, ymin, ymax, zmin, zmax]
  
-function [center_peak, path_nodes, path_length, path_edges, path_tortuosity] = ...
+function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, path_necks] = ...
                pathsCenter(peak_inds, pks_graph_length, ridges1D, ...
                edge_ind, voxels, domain)
  
@@ -58,7 +58,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity] = .
         center_peak  = peaks_cube_ind(min_val);
     else
         [~, min_val] = min(arrayfun(@(x) norm(peaks_coord(x, :) - ...
-                           [x_center, y_center, z_center]), 1 : size(peaks_coord, 1)));
+                           [x_center, y_center, z_center]), 1 : length(peaks_coord)));
         center_peak  = min_val;
     end
     
@@ -150,6 +150,17 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity] = .
     path_edges = path_edges(~cellfun('isempty', path_edges));
     path_tortuosity_lin = path_tortuosity_lin(path_tortuosity_lin ~= 0);
     path_tortuosity_vol = path_tortuosity_vol(path_tortuosity_vol ~= 0);
+
+    % For each path, store the bottleneck widths (diameter) along 1D-ridges
+    path_necks  = cell(length(edge_pks) * 3, 1);
+    for i = 1 : numel(path_edges)
+        necks = zeros(numel(path_edges{i}), 1);
+        for j = 1 : numel(path_edges{i})
+            necks(j) = ridges1D.doors{path_edges{i}(j)}.radius * 2;
+        end
+        path_necks{i} = necks;
+    end
+
     % save
     path_tortuosity.linear = path_tortuosity_lin;
     path_tortuosity.volume = path_tortuosity_vol;
