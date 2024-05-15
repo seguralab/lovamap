@@ -3218,7 +3218,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     peaks.pks_graph_length = [pks_graph, ridge_length_graph];
 
     % Get path data for full domain
-    [center_pk, path_nodes, path_length, path_edges, path_tortuosity, path_necks] = ...
+    [center_pk, path_nodes, path_length, path_edges, path_tortuosity, path_necks, path_doors, path_r1D_doors] = ...
                 pathsCenter(peaks.L7.indices, peaks.pks_graph_length, ...
                                 ridges1D, edge_ind, voxels, domain);
 
@@ -3228,6 +3228,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     data.paths.edges_r1D    = path_edges;
     data.paths.tortuosity   = path_tortuosity;
     data.paths.necks        = path_necks;
+    data.paths.doors        = path_doors;
+    data.paths.edges_doors  = path_r1D_doors;
 
     tElapsed = toc(tStart);
     % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Lengths of ridges1D:');
