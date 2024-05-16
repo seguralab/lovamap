@@ -158,15 +158,15 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
     for i = 1 : numel(path_edges)
         necks = zeros(numel(path_edges{i}), 1);
         % make the following code more concise
-        door_bool = ~fastIntersect(path_edges{i}, data.ridges1D.connected, 'bool vec'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
+        door_bool = ~fastIntersect(path_edges{i}, ridges1D.connected, 'bool vec'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
         these_edges = path_edges{i};
         path_r1D_doors{i} = these_edges(door_bool);
         doorss = zeros(numel(path_r1D_doors{i}), 1);
         for j = 1 : numel(path_edges{i})
-            necks(j) = data.ridges1D.doors{path_edges{i}(j)}.radius * 2;
+            necks(j) = ridges1D.doors{path_edges{i}(j)}.radius * 2;
         end
         for k = 1 : numel(path_r1D_doors{i})
-            doorss(k) = data.ridges1D.doors{path_r1D_doors{i}(k)}.radius * 2;
+            doorss(k) = ridges1D.doors{path_r1D_doors{i}(k)}.radius * 2;
         end
         path_necks{i} = necks;
         path_doors{i} = doorss;
