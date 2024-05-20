@@ -4068,7 +4068,22 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             tot_ligand               = sum(ligand_map(subunits{i}.indices)); % # molecules
             sub_volume               = subunits{i}.volume * 1000; % liters
             subunits{i}.RGDconc      = (tot_ligand * 1e15) / (sub_volume * 6.02e17);
+            
+            % Descriptor for pore 'edges' - i.e., number of surrounding
+            % particle + 1D-ridge pairs per pore
+            total_edges = 0;
+            for k = subunits{i}.doorRidges(:)'
+                if data.EDT(ridges1D.min(k)) > (dx*2) % check if the particle is substantially far from the 1D-ridge (otherwise there's really no 'edge' to consider..)
+                    these_pairs = fastIntersect(ridges1D.beads{k}, subunits{i}.beadNeighbors, 'size');
+                    % For each 1D-ridges exiting the pore, we're counting
+                    % up the number of particles surrounding the 1D-ridges
+                    % that are also surrounding the pore
+                    total_edges = total_edges + these_pairs;
+                end
+            end
+            subunits{i}.numFauxEdges = total_edges;
         end
+
         % Compute void volume fraction of interior pores only
         int_inds = 0;
         for i = 1 : num_subs
@@ -4306,6 +4321,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    '# Crawl Spaces';
                                                    '# Connected Pores';
                                                    '# Surrounding Pores';
+                                                   '# Particle Edges'
                                                    'Normalized Neighbors';
                                                    'Mean Local Thickness (um)';
                                                    '# Peaks';
@@ -4385,6 +4401,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.numCrawlSpaces        = zeros(num_subs, 1);
         data.Descriptors.Subs.numConnectPores       = zeros(num_subs, 1);
         data.Descriptors.Subs.numSurroundPores      = zeros(num_subs, 1);
+        data.Descriptors.Subs.numParticleEdges      = zeros(num_subs, 1);
         data.Descriptors.Subs.normNeigh             = zeros(num_subs, 1);
         data.Descriptors.Subs.meanThickness         = zeros(num_subs, 1);
         data.Descriptors.Subs.numPeaks              = zeros(num_subs, 1);
@@ -4418,6 +4435,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
             data.Descriptors.Subs.numConnectPores(i)= subunits{i}.numConnectPores;
             data.Descriptors.Subs.numSurroundPores(i) = subunits{i}.numSurroundPores;
+            data.Descriptors.Subs.numParticleEdges(i) = subunits{i}.numFauxEdges;
             data.Descriptors.Subs.normNeigh(i)      = subunits{i}.normNeigh;
             data.Descriptors.Subs.meanThickness(i)  = subunits{i}.meanLocalThickness;
             data.Descriptors.Subs.numPeaks(i)       = subunits{i}.numPeaks;
