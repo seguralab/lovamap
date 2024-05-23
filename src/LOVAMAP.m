@@ -4073,13 +4073,16 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % particle + 1D-ridge pairs per pore
             total_edges = 0;
             for k = subunits{i}.doorRidges(:)'
-                if data.EDT(ridges1D.min(k)) > (dx*2) % check if the particle is substantially far from the 1D-ridge (otherwise there's really no 'edge' to consider..)
-                    these_pairs = fastIntersect(ridges1D.beads{k}, subunits{i}.beadNeighbors, 'size');
-                    % For each 1D-ridges exiting the pore, we're counting
-                    % up the number of particles surrounding the 1D-ridges
-                    % that are also surrounding the pore
-                    total_edges = total_edges + these_pairs;
-                end
+            for k = subunits{i}.doorRidges(:)'
+                %if data.EDT(ridges1D.min(k)) > (dx*2) % check if the particle is substantially far from the 1D-ridge (otherwise there's really no 'edge' to consider..)
+                these_pairs = fastIntersect(ridges1D.beads{k}, subunits{i}.beadNeighbors, 'size');
+                % For each 1D-ridges exiting the pore, we're counting
+                % up the number of particles surrounding the 1D-ridges
+                % that are also surrounding the pore
+                total_edges = total_edges + these_pairs;
+                %end
+            end
+
             end
             subunits{i}.numFauxEdges = total_edges;
         end
