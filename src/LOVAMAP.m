@@ -3222,6 +3222,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 pathsCenter(peaks.L7.indices, peaks.pks_graph_length, ...
                                 ridges1D, edge_ind, voxels, domain);
 
+    data.paths.num_paths    = numel(path_nodes);
     data.paths.center_pk    = center_pk;
     data.paths.node_pks     = path_nodes;
     data.paths.path_lengths = path_length;
