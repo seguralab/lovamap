@@ -3264,12 +3264,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     % Gather 'center' of subunit, which entails peaks and connecting (full) ridges1D
     subs_clust.center      = cell(num_subs, 1);
     subs_clust.center_r1Dmin_diams = cell(num_subs, 1);
-    subs_clust.center_diams = zeros(num_subs, 1);
     % Store ridges containing doors
     subs_clust.door_ridges = cell(num_subs, 1);
     subs_clust.edge_ridges = cell(num_subs, 1);
     subs_clust.hall_ridges = cell(num_subs, 1);
-
     for i = 1 : num_subs
         fullhalf_bool = fastIntersect(subs_clust.ridges1D{i}, ridges1D.connected, 'boolvec');
         edge_bool = fastIntersect(subs_clust.ridges1D{i}, ridges1D.edge, 'boolvec');
@@ -3969,6 +3967,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 %             % create alphaShape from points that make up subunit
 %             subunits{i}.alphShape = alphaShape(subunits{i}.gridpts);
             subunits{i}.skeleton2DVoxs = subs_final.skeleton2D{j};
+            subunits{i}.centerSkeleton = subs_final.center{j};
             % subunit door data
             subunits{i}.doorRidges = subs_final.door_ridges{j};
             % subunit edge peaks
@@ -4489,7 +4488,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
             data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
             data.Descriptors.Subs.convLength(i)     = subunits{i}.convLength;
-            data.Descriptors.Subs.avgInternalDiam(i)= subunits{i}.narrowestDiam;
+            data.Descriptors.Subs.avgInternalDiam(i)= mean(data.EDT(subunits{i}.centerSkeleton) * 2);
             data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.narrowestDiam;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
