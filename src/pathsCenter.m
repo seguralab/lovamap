@@ -8,7 +8,7 @@
 % voxels:             list of [x,y,z] coordinates of all gridpoints in domain
 % domain:             [xmin, xmax, ymin, ymax, zmin, zmax]
  
-function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, path_necks, path_doors, path_r1D_doors] = ...
+function [center_peak, path_nodes, path_length, path_r1Ds, path_tortuosity, path_neck_data, path_door_data, path_r1D_doors] = ...
                pathsCenter(peak_inds, pks_graph_length, ridges1D, ...
                edge_ind, voxels, domain)
  
@@ -62,7 +62,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
         center_peak  = min_val;
     end
     
-    % Create key for pathway_graph edges and ridges1D
+    % Create key for pathway_graph r1Ds and ridges1D
     [~, key] = sortrows(ridges1D.rp_keyind); % sort to match Edge table in pathway_graph
     r1D_pks2_sort = false(ridges1D.num, 1);
     r1D_pks2_sort(ridges1D.pks2) = true;
@@ -71,7 +71,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
     
     path_nodes  = cell(length(edge_pks) * 3, 1); % remove extra cells at the end
     path_length = zeros(length(edge_pks) * 3, 1);
-    path_edges  = cell(length(edge_pks) * 3, 1);
+    path_r1Ds  = cell(length(edge_pks) * 3, 1);
     path_tortuosity_lin = zeros(length(edge_pks) * 3, 1);
     path_tortuosity_vol = zeros(length(edge_pks) * 3, 1);
     path_tortuosity = struct;
@@ -80,7 +80,7 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
         if binarySearch(all_path_pks, edge_pks(i)) > 0
             [a_node, b_length, c_edge] = shortestpath(pathway_graph, center_peak, edge_pks(i));
             if ~isempty(a_node)
-                % Convert graph edges to ridge1D numbers
+                % Convert graph r1Ds to ridge1D numbers
                 c_edge = key(c_edge);
                 % Add ridges1D that extend from edge_pk to edge of void space
                 these_r1D = fastIntersect(edge_pks_r1D, edge_pks(i), 'indices');
@@ -90,9 +90,9 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
                     for j = these_r1D(:)'
                         path_nodes{path_trkr}  = a_node;
                         path_length(path_trkr) = b_length;
-                        path_edges{path_trkr}  = c_edge;
+                        path_r1Ds{path_trkr}  = c_edge;
                         % add edge path to form unique paths
-                        path_edges{path_trkr} = sort([path_edges{path_trkr}(:); j]);
+                        path_r1Ds{path_trkr} = sort([path_r1Ds{path_trkr}(:); j]);
                         % add length
                         path_length(path_trkr) = path_length(path_trkr) + ridges1D.lengths(j);
                         % locate a ridge point at the edge of void space (end of path)
@@ -114,8 +114,8 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
                         path_tortuosity_lin(path_trkr) = path_length(path_trkr) / lin_length;
                         % Compute volume of convex hull for another tortuosity measurement
                         comb_inds = [];
-                        for k = 1 : length(path_edges{path_trkr})
-                            comb_inds = [comb_inds; ridges1D.indices{path_edges{path_trkr}(k)}]; 
+                        for k = 1 : length(path_r1Ds{path_trkr})
+                            comb_inds = [comb_inds; ridges1D.indices{path_r1Ds{path_trkr}(k)}]; 
                         end
                         [~, conv_vol] = convhull(voxels(comb_inds, :));
                         path_tortuosity_vol(path_trkr) = conv_vol;
@@ -125,15 +125,15 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
                 else
                     path_nodes{path_trkr}  = a_node;
                     path_length(path_trkr) = b_length;
-                    path_edges{path_trkr}  = c_edge;
+                    path_r1Ds{path_trkr}  = c_edge;
                     % Compute linear distance from edge to center for tortuosity
                     % measurement
                     lin_length = norm(voxels(peak_inds(edge_pks(i)), :) - voxels(peak_inds(center_peak), :));
                     path_tortuosity_lin(path_trkr) = path_length(path_trkr) / lin_length;
                     % Compute volume of convex hull for another tortuosity measurement
                     comb_inds = [];
-                    for j = 1 : length(path_edges{path_trkr})
-                        comb_inds = [comb_inds; ridges1D.indices{path_edges{path_trkr}(j)}]; 
+                    for j = 1 : length(path_r1Ds{path_trkr})
+                        comb_inds = [comb_inds; ridges1D.indices{path_r1Ds{path_trkr}(j)}]; 
                     end
                     [~, conv_vol] = convhull(voxels(comb_inds, :));
                     path_tortuosity_vol(path_trkr) = conv_vol;
@@ -147,29 +147,29 @@ function [center_peak, path_nodes, path_length, path_edges, path_tortuosity, pat
     % Remove empty entries
     path_nodes = path_nodes(~cellfun('isempty', path_nodes));
     path_length = path_length(path_length ~= 0);
-    path_edges = path_edges(~cellfun('isempty', path_edges));
+    path_r1Ds = path_r1Ds(~cellfun('isempty', path_r1Ds));
     path_tortuosity_lin = path_tortuosity_lin(path_tortuosity_lin ~= 0);
     path_tortuosity_vol = path_tortuosity_vol(path_tortuosity_vol ~= 0);
 
     % For each path, store the bottleneck widths (diameter) along 1D-ridges
-    path_necks     = cell(length(edge_pks), 1);
-    path_doors     = cell(length(edge_pks), 1);
+    path_neck_data     = cell(length(edge_pks), 1);
+    path_door_data     = cell(length(edge_pks), 1);
     path_r1D_doors = cell(length(edge_pks), 1);
-    for i = 1 : numel(path_edges)
-        necks = zeros(numel(path_edges{i}), 1);
+    for i = 1 : numel(path_r1Ds)
+        necks = zeros(numel(path_r1Ds{i}), 1);
         % make the following code more concise
-        door_bool = ~fastIntersect(path_edges{i}, ridges1D.connected, 'bool vec'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
-        these_edges = path_edges{i};
-        path_r1D_doors{i} = these_edges(door_bool);
+
+        door_bool = ~fastIntersect(path_r1Ds{i}, ridges1D.connected, 'bool vec'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
+        path_r1D_doors{i} = path_r1Ds{i}(door_bool);
         doorss = zeros(numel(path_r1D_doors{i}), 1);
-        for j = 1 : numel(path_edges{i})
-            necks(j) = ridges1D.doors{path_edges{i}(j)}.radius * 2;
+        for j = 1 : numel(path_r1Ds{i})
+            necks(j) = ridges1D.doors{path_r1Ds{i}(j)}.radius * 2;
         end
         for k = 1 : numel(path_r1D_doors{i})
             doorss(k) = ridges1D.doors{path_r1D_doors{i}(k)}.radius * 2;
         end
-        path_necks{i} = necks;
-        path_doors{i} = doorss;
+        path_neck_data{i} = necks;
+        path_door_data{i} = doorss;
     end
 
     % save
