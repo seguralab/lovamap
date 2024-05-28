@@ -682,6 +682,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     % Calculate void volume fraction within void space
     porosity = num_VsVoxels / sum(in_log);
 
+    dx
     nVoxels
 
     % Calculate void area fraction along 2D slice
@@ -3226,11 +3227,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     data.paths.center_pk    = center_pk;
     data.paths.node_pks     = path_nodes;
     data.paths.path_lengths = path_length;
-    data.paths.edges_r1D    = path_edges;
+    data.paths.path_r1Ds    = path_edges;
     data.paths.tortuosity   = path_tortuosity;
-    data.paths.necks        = path_necks;
-    data.paths.doors        = path_doors;
-    data.paths.edges_doors  = path_r1D_doors;
+    data.paths.neck_data    = path_necks;
+    data.paths.door_data    = path_doors;
+    data.paths.r1D_w_doors  = path_r1D_doors;
 
     tElapsed = toc(tStart);
     % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Lengths of ridges1D:');
@@ -3263,6 +3264,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     % Gather 'center' of subunit, which entails peaks and connecting (full) ridges1D
     subs_clust.center      = cell(num_subs, 1);
     subs_clust.center_r1Dmin_diams = cell(num_subs, 1);
+    subs_clust.center_diams = zeros(num_subs, 1);
     % Store ridges containing doors
     subs_clust.door_ridges = cell(num_subs, 1);
     subs_clust.edge_ridges = cell(num_subs, 1);
@@ -3869,7 +3871,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
         % TODO Janky crop version to temporarily produce better hotspot data
         ligand_map_crop = ligand_map;
-        ligand_map_crop(:, :, (size(ligand_map, 3) - (shell_thickness + 1) * dx) : end) = 0;
+        ligand_map_crop(:, :, (size(ligand_map, 3) - (shell_thickness + 1)*dx) : end) = 0;
 
         % Used for figuring out what voxels remain in the convex hull
         cropHeight = domain(6) - dx * shell_thickness;
@@ -4047,6 +4049,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 subunits{i}.edge = false;
                 edge_subs_log(i) = false;
             end
+
+            %%%%% MEAN LOCAL THICKNESS %%%%%
             % Compute mean local thickness
             if combine_edge_subs && subunits{i}.edge == true
                 subunits{i}.meanLocalThickness = NaN;
@@ -4060,6 +4064,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     subunits{i}.meanLocalThickness = (sum(local_thick_mat) * dx^3) / (subunits{i}.volume * 1000);
                 end
             end
+
+            %%%%%%% EDGE EDT AND INTEGRIN STUFF %%%%%%%
             % EDT (from center) along edge of subunit
             subunits{i}.edgeEDT = subs_final.edgeEDT{j};
             % total integrin-binding protein concentration within subunit
@@ -4069,11 +4075,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             tot_ligand               = sum(ligand_map(subunits{i}.indices)); % # molecules
             sub_volume               = subunits{i}.volume * 1000; % liters
             subunits{i}.RGDconc      = (tot_ligand * 1e15) / (sub_volume * 6.02e17);
-            
+
+            %%%%%% 'PARTICLE EDGES' OF A PORE %%%%%%
             % Descriptor for pore 'edges' - i.e., number of surrounding
             % particle + 1D-ridge pairs per pore
             total_edges = 0;
-            for k = subunits{i}.doorRidges(:)'
             for k = subunits{i}.doorRidges(:)'
                 %if data.EDT(ridges1D.min(k)) > (dx*2) % check if the particle is substantially far from the 1D-ridge (otherwise there's really no 'edge' to consider..)
                 these_pairs = fastIntersect(ridges1D.beads{k}, subunits{i}.beadNeighbors, 'size');
@@ -4083,11 +4089,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 total_edges = total_edges + these_pairs;
                 %end
             end
-
-            end
             subunits{i}.numFauxEdges = total_edges;
         end
 
+        %%%%% VVF OF INTERIOR PORES ONLY %%%%%
         % Compute void volume fraction of interior pores only
         int_inds = 0;
         for i = 1 : num_subs
@@ -4097,6 +4102,37 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         end
         porosity_int = int_inds / sum(in_log);
 
+        %%%%%% PATH STUFF %%%%%%%
+        % Compute pores per path by locating pores that share peaks along path(s)
+        data.paths.subunits.int = cell(data.paths.num_paths, 1);
+        data.paths.subunits.ext = cell(data.paths.num_paths, 1);
+        data.paths.surrounding_particles.int = cell(data.paths.num_paths, 1);
+        data.paths.surrounding_particles.ext = cell(data.paths.num_paths, 1);
+        for i = 1 : data.paths.num_paths
+            these_path_subs_int = [];
+            these_surr_particles_int = [];
+            these_path_subs_ext = [];
+            these_surr_particles_ext = [];
+            for j = 1 : numel(subunits)
+                if fastIntersect(sort(peaks.L7.indices(data.paths.node_pks{i})), ...
+                                        subunits{j}.peaks, 'bool')
+                    if ~subunits{j}.edge
+                        these_path_subs_int = [these_path_subs_int; j];
+                        these_surr_particles_int = [these_surr_particles_int; subunits{j}.beadNeighbors];
+                    else
+                        these_path_subs_ext = [these_path_subs_ext; j];
+                        these_surr_particles_ext = [these_surr_particles_ext; subunits{j}.beadNeighbors];
+                    end
+                end
+            end
+            data.paths.subunits.int{i} = these_path_subs_int;
+            data.paths.surrounding_particles.int{i} = unique(these_surr_particles_int);
+            data.paths.subunits.ext{i} = these_path_subs_ext;
+            data.paths.surrounding_particles.ext{i} = unique(these_surr_particles_ext);
+        end
+        
+
+        %%%%% ELLIPSOIDS %%%%%
         % Get ellipsoid/orientation/isotropy/directionality data
         % Column 1 : 3 of ellipse_data gives the eigenvalues of the PCA for
         % the subunit point cloud. The radii of the corresponding
@@ -4147,6 +4183,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i}.isotropy = abs(ellipse_data(i, 4));
         end
 
+        %%%%%% MORE LIGAND STUFF %%%%%%%
         % Compute accessible ligand (in micromoles) by identifying edge
         % voxels of neighbor beads and multiplying by thickness of shell
         % Create 3D matrix where beads are identified by number
@@ -4215,6 +4252,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
+        %%%%%% EDGE SUBUNIT STUFF - TO-DO %%%%%%
         % Compute 'edge subunit' descriptors
         tStart = tic;
 
@@ -4231,6 +4269,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
         tStart = tic;
 
+        %%%%% EIGNEVALUES %%%%%
         % Get largest eigenvalue of global adjacency matrices
         % beads
         bead_adj_ones = beads_adjacency;
@@ -4248,6 +4287,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 %         subs_r2D    = subs_adjacencyr2D;
 %         subs_doors  = subs_adjacencydoors;
 
+        %%%%% INTERIOR PORES PRE SURROUNDING PARTICLES %%%%%%
         % Compute # interior subs / # particles surrounding interior subs
         interior_beads = unique(cell2mat(arrayfun(@(x) subunits{x}.beadNeighbors, ...
                                 find(~edge_subs_log)', 'UniformOutput', false)'));
@@ -4286,8 +4326,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Particle Fraction';
                                                    'Void Area Fraction';
                                                    'Void Vol Fraction of Interior Pores'
-                                                   '# 3D-Pores';
-                                                   '# Interior 3D-Pores';
+                                                   '# 3D Pores';
+                                                   '# Interior 3D Pores';
                                                    '# Int 3D-Pores / # Particles Surr Int Pores';
                                                    '# Exterior Doors';
                                                    '# Interior Doors';
@@ -4308,6 +4348,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Path Length (um)';
                                                    'Tortuosity by Length';
                                                    'Tortuosity by Volume (pL)';
+                                                   '# Particles Enclosing Interior Path';
+                                                   '# Particles Enclosing Exiting Path';
+                                                   '# Interior 3D Pores Traversed by Path';
+                                                   '# Exterior 3D Pores Traversed by Path';
+                                                   '# Bottlenecks (total)';
+                                                   'Avg Bottleneck Diameter (total) (um)';
+                                                   '# Bottlenecks (doors)';
+                                                   'Avg Bottleneck Diameter (doors) (um)';
                                                    'Surface Ligand Conc (µmoles / µm^2)';
                                                    'Surface Accessible Ligand (µmoles)';
                                                    'Region Vols, <1 um (pL)';
@@ -4361,7 +4409,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Global.subs2Beads          = subs2beads;
         data.Descriptors.Global.numDoors_exterior   = peaks_e.num;
         data.Descriptors.Global.numDoors_interior   = length(interior_door_ridges);
-        data.Descriptors.Global.numPaths            = length(data.paths.path_lengths);
+        data.Descriptors.Global.numPaths            = data.paths.num_paths;
         data.Descriptors.Global.beadEigenvalue      = beads_beads_maxe;
         data.Descriptors.Global.peakEigenvalue      = peaks_peaks_maxe;
         data.Descriptors.Global.subEigenvalue       = subs_subs_maxe;
@@ -4382,6 +4430,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.NonSubs.pathLengths        = data.paths.path_lengths;
         data.Descriptors.NonSubs.pathTortuosity_lin = data.paths.tortuosity.linear;
         data.Descriptors.NonSubs.pathTortuosity_vol = data.paths.tortuosity.volume / 1000;
+        data.Descriptors.NonSubs.pathNumSurrBeads_int = cellfun(@(x) numel(x), data.paths.subunits.int);
+        data.Descriptors.NonSubs.pathNumSurrBeads_ext = cellfun(@(x) numel(x), data.paths.subunits.ext);
+        data.Descriptors.NonSubs.pathNumPores_int     = cellfun(@(x) numel(x), data.paths.surrounding_particles.int);
+        data.Descriptors.NonSubs.pathNumPores_ext     = cellfun(@(x) numel(x), data.paths.surrounding_particles.ext);
+        data.Descriptors.NonSubs.pathNumBotnecksTot   = cellfun(@(x) numel(x), data.paths.neck_data);
+        data.Descriptors.NonSubs.pathAvgBothecksTot   = cellfun(@(x) mean(x), data.paths.neck_data);
+        data.Descriptors.NonSubs.pathNumBotnecksDoor  = cellfun(@(x) numel(x), data.paths.door_data);
+        data.Descriptors.NonSubs.pathAvgBotnecksDoor  = cellfun(@(x) mean(x), data.paths.door_data);
         % >> surface subunits
         data.Descriptors.NonSubs.edgeRGDconc       = zeros(num_2Dedgesubs, 1);
         data.Descriptors.NonSubs.edgeRGDaccessible = zeros(num_2Dedgesubs, 1);
