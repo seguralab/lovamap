@@ -62,14 +62,14 @@ function [center_peak, path_nodes, path_length, path_r1Ds, path_tortuosity, path
         center_peak  = min_val;
     end
     
-    % Create key for pathway_graph r1Ds and ridges1D
+    % Create key for pathway_graph edges and ridges1D
     [~, key] = sortrows(ridges1D.rp_keyind); % sort to match Edge table in pathway_graph
     r1D_pks2_sort = false(ridges1D.num, 1);
     r1D_pks2_sort(ridges1D.pks2) = true;
     r1D_pks2_sort = r1D_pks2_sort(key);
     key = key(r1D_pks2_sort);
     
-    path_nodes  = cell(length(edge_pks) * 3, 1); % remove extra cells at the end
+    path_nodes  = cell(length(edge_pks) * 3, 1); % remove extra cells after
     path_length = zeros(length(edge_pks) * 3, 1);
     path_r1Ds  = cell(length(edge_pks) * 3, 1);
     path_tortuosity_lin = zeros(length(edge_pks) * 3, 1);
@@ -80,7 +80,7 @@ function [center_peak, path_nodes, path_length, path_r1Ds, path_tortuosity, path
         if binarySearch(all_path_pks, edge_pks(i)) > 0
             [a_node, b_length, c_edge] = shortestpath(pathway_graph, center_peak, edge_pks(i));
             if ~isempty(a_node)
-                % Convert graph r1Ds to ridge1D numbers
+                % Convert graph edge to ridge1D numbers
                 c_edge = key(c_edge);
                 % Add ridges1D that extend from edge_pk to edge of void space
                 these_r1D = fastIntersect(edge_pks_r1D, edge_pks(i), 'indices');
