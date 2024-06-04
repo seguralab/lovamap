@@ -3798,7 +3798,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         timeLogIdx = timeLogIdx + 1;
 
         %%%%%%%***************************************************%%%%%%%
-        %%%%%**** END-TO-END LENGTH OF SUBUNIT USING CONVEX HULL ***%%%%%
+        %%%%%**** LONGEST LENGTH OF SUBUNIT USING CONVEX HULL ***%%%%%
         %%%%%%%***************************************************%%%%%%%        
         tStart = tic;
         convhull_longest = zeros(num_subs, 1);
@@ -3997,9 +3997,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i}.convLength = convhull_longest(i);
             % average 'interior' door diameter of subunit (um)
             if numel(subunits{i}.EDTofPeaks) == 1
-                subunits{i}.narrowestDiam = subunits{i}.EDTofPeaks * 2;
+                subunits{i}.avgInternalDiam = subunits{i}.EDTofPeaks * 2;
             else
-                subunits{i}.narrowestDiam = mean(subs_final.center_r1Dmin_diams{j});
+                % subunits{i}.narrowestDiam = mean(subs_final.center_r1Dmin_diams{j});
+                subunits{i}.avgInternalDiam = mean(data.EDT(subunits{i}.centerSkeleton) * 2);
             end
             % bead neighbors
             subunits{i}.beadNeighbors = neighbors_beads{i};
@@ -4091,6 +4092,16 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i}.numFauxEdges = total_edges;
         end
 
+        tElapsed = toc(tStart);
+        % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Accumulate subunit data:');
+
+        time_log(timeLogIdx).Name = 'Second set of pore data, inc. mean local thickness';
+        time_log(timeLogIdx).Time = tElapsed;
+        time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
+        timeLogIdx = timeLogIdx + 1;
+
+        tStart = tic;
         %%%%% VVF OF INTERIOR PORES ONLY %%%%%
         % Compute void volume fraction of interior pores only
         int_inds = 0;
@@ -4102,35 +4113,205 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         porosity_int = int_inds / sum(in_log);
 
         %%%%%% PATH STUFF %%%%%%%
+        tic;
         % Compute pores per path by locating pores that share peaks along path(s)
-        data.paths.subunits.int = cell(data.paths.num_paths, 1);
-        data.paths.subunits.ext = cell(data.paths.num_paths, 1);
+        data.paths.subunits = cell(data.paths.num_paths, 1);
+        data.paths.subunits_key = cell(data.paths.num_paths, 1); % 'interior' pores is 'true', 'exterior' pores is 'false'
         data.paths.surrounding_particles.int = cell(data.paths.num_paths, 1);
         data.paths.surrounding_particles.ext = cell(data.paths.num_paths, 1);
+        % Generate matrix of path pore/door data:
+        % Rows refer to paths
+        % Columns list alternating: pore data, door diameter, pore data, door diameter,
+        % etc. going from interior of scaffold outward along path
+        data.paths.path_matrix_pores = cell(data.paths.num_paths, 1);
+        data.paths.path_matrix_nodes = cell(data.paths.num_paths, 1);
+        % Find first pore from center node
+        for i = 1 : numel(subunits)
+            if fastIntersect(peaks.L7.indices(data.paths.center_pk), subunits{i}.peaks, 'bool')
+                center_pore = i;
+                break;
+            end
+        end
+        pore_list = 1 : numel(subunits);
+        
+        % Find remaining pores from 1D-ridges
         for i = 1 : data.paths.num_paths
-            these_path_subs_int = [];
-            these_surr_particles_int = [];
-            these_path_subs_ext = [];
-            these_surr_particles_ext = [];
-            for j = 1 : numel(subunits)
-                if fastIntersect(sort(peaks.L7.indices(data.paths.node_pks{i})), ...
-                                        subunits{j}.peaks, 'bool')
-                    if ~subunits{j}.edge
-                        these_path_subs_int = [these_path_subs_int; j];
-                        these_surr_particles_int = [these_surr_particles_int; subunits{j}.beadNeighbors];
-                    else
-                        these_path_subs_ext = [these_path_subs_ext; j];
-                        these_surr_particles_ext = [these_surr_particles_ext; subunits{j}.beadNeighbors];
+            remaining_pores = true(1, numel(subunits));
+            row_cntr = 1; % for path_matrix
+            % Grab r1D data for the path
+            these_r1Ds = data.paths.path_r1Ds{i};
+
+            % First pore will always be the center pore for each path
+            data.paths.subunits{i} = center_pore;
+            data.paths.subunits_key{i} = ~subunits{center_pore}.edge;
+            if subunits{center_pore}.edge
+                    % exterior pores
+                    data.paths.surrounding_particles.ext{i} = subunits{center_pore}.beadNeighbors;
+                else
+                    % interior pores
+                    data.paths.surrounding_particles.int{i} = subunits{center_pore}.beadNeighbors;
+            end
+            % fill matrix cell with pore data
+            data.paths.path_matrix_pores{i}{row_cntr} = [subunits{center_pore}.convLength, subunits{center_pore}.avgInternalDiam, subunits{center_pore}.largestSphereDiam];
+            row_cntr = row_cntr + 1;
+
+            % Find remaining pores and doors in order
+            last_pore = center_pore;
+            remaining_pores(last_pore) = false;
+            for j = these_r1Ds(:)'
+                this_pore = [];
+                for k = pore_list(remaining_pores)
+                    if fastIntersect(j, subunits{k}.ridges1D, 'bool')
+                        % since we removed the other pore (connected to the ridge) from the list of pores, the ridge
+                        % should only be associated with one other pore max
+                        this_pore = k;
+                        break;
                     end
                 end
-            end
-            data.paths.subunits.int{i} = these_path_subs_int;
-            data.paths.surrounding_particles.int{i} = unique(these_surr_particles_int);
-            data.paths.subunits.ext{i} = these_path_subs_ext;
-            data.paths.surrounding_particles.ext{i} = unique(these_surr_particles_ext);
-        end
-        
+                if ~isempty(this_pore)
+                    % Fill path matrix with door data
+                    data.paths.path_matrix_pores{i}{row_cntr} = ridges1D.doors{j}.radius * 2;
+                    row_cntr = row_cntr + 1;
+                    
+                    % Fill in pore and door info
+                    data.paths.subunits{i} = [data.paths.subunits{i}; this_pore];
+                    data.paths.subunits_key{i} = [data.paths.subunits_key{i}; ~subunits{this_pore}.edge];
+                    if subunits{this_pore}.edge
+                            % exterior pores
+                            data.paths.surrounding_particles.ext{i} = [data.paths.surrounding_particles.ext{i}; subunits{this_pore}.beadNeighbors];
+                        else
+                            % interior pores
+                            data.paths.surrounding_particles.int{i} = [data.paths.surrounding_particles.int{i}; subunits{this_pore}.beadNeighbors];
+                    end
+                    % fill matrix cell with pore data
+                    data.paths.path_matrix_pores{i}{row_cntr} = [subunits{this_pore}.convLength, subunits{this_pore}.avgInternalDiam, subunits{this_pore}.largestSphereDiam];
+                    row_cntr = row_cntr + 1;
 
+                    % Update last pore to remove it from potential-pores list. Add the previous pore back to the list to
+                    % accommodate large pores that weave in and out of the path
+                    remaining_pores(last_pore) = true;
+                    remaining_pores(this_pore) = false;
+                    last_pore = this_pore;
+                end
+            end
+            data.paths.surrounding_particles.ext{i} = unique(data.paths.surrounding_particles.ext{i});
+            data.paths.surrounding_particles.int{i} = unique(data.paths.surrounding_particles.int{i});
+
+            % Alternative matrix output of nodes and doors
+            % % Check for length discrepancy
+            % if numel(data.paths.path_r1Ds{i}) > numel(data.paths.node_pks{i}) || ...
+            %   numel(data.paths.node_pks{i}) > numel(data.paths.path_r1Ds{i}) + 1
+            %     error('The length of path_r1Ds is greater than the length of node_pks. There is an error with the data.');
+            % end
+            
+            % Determine length of shorter vector
+            minLength = numel(data.paths.path_r1Ds{i});
+            path_matrix_row = zeros(1, 2 * minLength);
+            
+            % Interleave elements from node_pks and path_r1Ds
+            path_matrix_row(1:2:end) = data.EDT(peaks.L7.indices(data.paths.node_pks{i}(1 : minLength))) * 2;
+            path_matrix_row(2:2:end) = arrayfun(@(x) ridges1D.doors{x}.radius * 2, data.paths.path_r1Ds{i}(1 : minLength));
+            
+            % Append any remaining elements from node_pks
+            if length(data.paths.node_pks{i}) > minLength
+                path_matrix_row = [path_matrix_row, data.paths.node_pks{i}(minLength + 1 : end)]; % shouldn't be more than a single value..
+            end
+
+            data.paths.path_matrix_nodes{i} = path_matrix_row;
+        end
+
+        tElapsed = toc(tStart);
+
+        time_log(timeLogIdx).Name = 'Third set of pore data, inc. path data';
+        time_log(timeLogIdx).Time = tElapsed;
+        time_log(timeLogIdx).Units = 'sec';
+        printTimeInfo(time_log(timeLogIdx));
+        timeLogIdx = timeLogIdx + 1;
+
+        % 
+        % 
+        % 
+        % 
+        % 
+        %     num_nodes = numel(data.paths.node_pks{i});
+        %     these_path_subs = zeros(num_nodes, 1);
+        %     boolean_key = zeros(num_nodes, 1);
+        %     % we don't know ahead of time how many surrounding particles
+        %     these_surr_particles_int = [];
+        %     these_surr_particles_ext = [];
+        %     % Order of how we search unfortunately matters here because we
+        %     % need to keep track of the order of pores along path
+        %     for j = 1 : num_nodes
+        %         for k = 1 : numel(subunits)
+        %             if fastIntersect(peaks.L7.indices(data.paths.node_pks{i}(j)), ...
+        %                                     subunits{k}.peaks, 'bool')
+        %                 these_path_subs(j) = k;
+        %                 if subunits{k}.edge
+        %                     % exterior pores
+        %                     boolean_key(j) = false;
+        %                     these_surr_particles_ext = [these_surr_particles_ext; subunits{j}.beadNeighbors];
+        %                 else
+        %                     % interior pores
+        %                     boolean_key(j) = true;
+        %                     these_surr_particles_int = [these_surr_particles_int; subunits{j}.beadNeighbors];
+        %                 end
+        %                 break;
+        %             end
+        %         end
+        %     end
+        %     data.paths.subunits{i} = unique(these_path_subs, 'stable');
+        %     data.paths.subunits_key{i} = boolean_key;
+        %     data.paths.surrounding_particles.int{i} = unique(these_surr_particles_int);
+        %     data.paths.surrounding_particles.ext{i} = unique(these_surr_particles_ext);
+        % end
+        % 
+        % % Generate matrix of path pore/door data:
+        % % Rows refer to paths
+        % % Columns list alternating: pore data, door diameter, pore data, door diameter,
+        % % etc. going from interior of scaffold outward along path
+        % path_matrix = cell(data.paths.num_paths, 1);
+        % for i = 1 : data.paths.num_paths
+        %     % remove extra cells after
+        %     num_pores = numel(data.paths.subunits{i});
+        %     path_r1Ds = sort(data.paths.path_r1Ds{i});
+        %     path_matrix_row = cell(num_pores * 3, 1);
+        %     end_now = 0;
+        %     cntr = 1;
+        %     large_pore_r1D_trkr = data.paths.path_r1Ds{i};
+        %     for j = 1 : num_pores
+        %         if end_now == 1 % theoretically this check isn't needed
+        %             break;
+        %         end
+        %         current_pore = data.paths.subunits{i}(j);
+        %         % fill matrix cell with pore data
+        %         path_matrix_row{cntr} = [subunits{current_pore}.convLength, subunits{i}.avgInternalDiam, subunits{i}.largestSphereDiam];
+        %         % fill next matrix cell with door diameter
+        %         cntr = cntr + 1;
+        %         if j < num_pores
+        %             current_pore_doors = sort(subunits{current_pore}.doorRidges);
+        %             next_pore_doors = sort(subunits{data.paths.subunits{i}(j+1)}.doorRidges);
+        %             these_doors = fastIntersect(current_pore_doors, next_pore_doors, 'elements');
+        %             this_door = fastIntersect(sort(these_doors), path_r1Ds, 'elements');
+        %             if numel(this_door) > 1
+        %                 % Examples where path goes in and out of one larger pore
+        %                 [drs, inds, ~] = intersect(large_pore_r1D_trkr, this_door, 'stable');
+        %                 this_door = drs(1);
+        %                 large_pore_r1D_trkr(inds(1)) = [];
+        %             end
+        %             path_matrix_row{cntr} = ridges1D.doors{this_door}.radius * 2;
+        %         else
+        %             this_door = path_r1Ds(end);
+        %             path_matrix_row{cntr} = ridges1D.doors{this_door}.radius * 2;
+        %             end_now = 1;
+        %         end
+        %         cntr = cntr + 1;
+        %     end
+        %     path_matrix_row = path_matrix_row(~cellfun(@isempty, path_matrix_row));
+        %     path_matrix{i} = path_matrix_row;
+        % end
+        % data.paths.path_matrix = path_matrix;
+
+        tStart = tic;
         %%%%% ELLIPSOIDS %%%%%
         % Get ellipsoid/orientation/isotropy/directionality data
         % Column 1 : 3 of ellipse_data gives the eigenvalues of the PCA for
@@ -4242,31 +4423,12 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             subunits{i}.SA_open  = SA_edgeopen;
         end
 
-        tElapsed = toc(tStart);
-        % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Accumulate subunit data:');
-
-        time_log(timeLogIdx).Name = 'Calculate and accumulate subunit data';
-        time_log(timeLogIdx).Time = tElapsed;
-        time_log(timeLogIdx).Units = 'sec';
-        printTimeInfo(time_log(timeLogIdx));
-        timeLogIdx = timeLogIdx + 1;
 
         %%%%%% EDGE SUBUNIT STUFF - TO-DO %%%%%%
         % Compute 'edge subunit' descriptors
-        tStart = tic;
 
         % [To-do]
 
-        tElapsed = toc(tStart);
-        % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Accumulate edge subunit data:');
-
-        time_log(timeLogIdx).Name = 'Accumulate edge subunit data';
-        time_log(timeLogIdx).Time = tElapsed;
-        time_log(timeLogIdx).Units = 'sec';
-        printTimeInfo(time_log(timeLogIdx));
-        timeLogIdx = timeLogIdx + 1;
-
-        tStart = tic;
 
         %%%%% EIGNEVALUES %%%%%
         % Get largest eigenvalue of global adjacency matrices
@@ -4295,7 +4457,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         tElapsed = toc(tStart);
         % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Compute eigenvalues of adjacency:');
 
-        time_log(timeLogIdx).Name = 'Compute additional global descriptors';
+        time_log(timeLogIdx).Name = 'Third set of pore data';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
         printTimeInfo(time_log(timeLogIdx));
@@ -4347,10 +4509,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Path Length (um)';
                                                    'Tortuosity by Length';
                                                    'Tortuosity by Volume (pL)';
-                                                   '# Particles Enclosing Interior Path';
-                                                   '# Particles Enclosing Exiting Path';
                                                    '# Interior 3D Pores Traversed by Path';
                                                    '# Exterior 3D Pores Traversed by Path';
+                                                   '# Particles Enclosing Interior Path';
+                                                   '# Particles Enclosing Exiting Path';
                                                    '# Bottlenecks (total)';
                                                    'Avg Bottleneck Diameter (total) (um)';
                                                    '# Bottlenecks (doors)';
@@ -4429,10 +4591,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.NonSubs.pathLengths        = data.paths.path_lengths;
         data.Descriptors.NonSubs.pathTortuosity_lin = data.paths.tortuosity.linear;
         data.Descriptors.NonSubs.pathTortuosity_vol = data.paths.tortuosity.volume / 1000;
-        data.Descriptors.NonSubs.pathNumSurrBeads_int = cellfun(@(x) numel(x), data.paths.subunits.int);
-        data.Descriptors.NonSubs.pathNumSurrBeads_ext = cellfun(@(x) numel(x), data.paths.subunits.ext);
-        data.Descriptors.NonSubs.pathNumPores_int     = cellfun(@(x) numel(x), data.paths.surrounding_particles.int);
-        data.Descriptors.NonSubs.pathNumPores_ext     = cellfun(@(x) numel(x), data.paths.surrounding_particles.ext);
+        data.Descriptors.NonSubs.pathNumPores_int = cellfun(@(x, y) numel(x(y)), data.paths.subunits, data.paths.subunits_key);
+        data.Descriptors.NonSubs.pathNumPores_ext   = cellfun(@(x, y) numel(x(~y)), data.paths.subunits, data.paths.subunits_key);
+        data.Descriptors.NonSubs.pathNumSurrBeads_int = cellfun(@(x) numel(x), data.paths.surrounding_particles.int);
+        data.Descriptors.NonSubs.pathNumSurrBeads_ext = cellfun(@(x) numel(x), data.paths.surrounding_particles.ext);
         data.Descriptors.NonSubs.pathNumBotnecksTot   = cellfun(@(x) numel(x), data.paths.neck_data);
         data.Descriptors.NonSubs.pathAvgBothecksTot   = cellfun(@(x) mean(x), data.paths.neck_data);
         data.Descriptors.NonSubs.pathNumBotnecksDoor  = cellfun(@(x) numel(x), data.paths.door_data);
@@ -4488,8 +4650,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
             data.Descriptors.Subs.charLength(i)     = subunits{i}.charLength;
             data.Descriptors.Subs.convLength(i)     = subunits{i}.convLength;
-            data.Descriptors.Subs.avgInternalDiam(i)= mean(data.EDT(subunits{i}.centerSkeleton) * 2);
-            data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.narrowestDiam;
+            data.Descriptors.Subs.avgInternalDiam(i)= subunits{i}.avgInternalDiam;
+            data.Descriptors.Subs.aspectRatio(i)    = subunits{i}.convLength / subunits{i}.avgInternalDiam;
             data.Descriptors.Subs.numHalls(i)       = subunits{i}.numHalls;
             data.Descriptors.Subs.numCrawlSpaces(i) = subunits{i}.numCrawlSpaces;
             data.Descriptors.Subs.numConnectPores(i)= subunits{i}.numConnectPores;
