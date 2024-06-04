@@ -92,7 +92,7 @@ function [center_peak, path_nodes, path_length, path_r1Ds, path_tortuosity, path
                         path_length(path_trkr) = b_length;
                         path_r1Ds{path_trkr}  = c_edge;
                         % add edge path to form unique paths
-                        path_r1Ds{path_trkr} = sort([path_r1Ds{path_trkr}(:); j]);
+                        path_r1Ds{path_trkr} = [path_r1Ds{path_trkr}(:); j];
                         % add length
                         path_length(path_trkr) = path_length(path_trkr) + ridges1D.lengths(j);
                         % locate a ridge point at the edge of void space (end of path)
@@ -159,8 +159,11 @@ function [center_peak, path_nodes, path_length, path_r1Ds, path_tortuosity, path
         necks = zeros(numel(path_r1Ds{i}), 1);
         % make the following code more concise
 
-        door_bool = ~fastIntersect(path_r1Ds{i}, ridges1D.connected, 'bool vec'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
-        path_r1D_doors{i} = path_r1Ds{i}(door_bool);
+        paths_connect = fastIntersect(sort(path_r1Ds{i}), ridges1D.connected, 'elements'); % finding 'doors' (i.e., the min on 1D ridges) that only exist between pores (not within pores)
+        % Reorder paths_connect to match the order in path_r1Ds
+        [~, indices] = ismember(paths_connect, path_r1Ds{i});
+        [~, order] = sort(indices);
+        path_r1D_doors{i} = paths_connect(order);
         doorss = zeros(numel(path_r1D_doors{i}), 1);
         for j = 1 : numel(path_r1Ds{i})
             necks(j) = ridges1D.doors{path_r1Ds{i}(j)}.radius * 2;
