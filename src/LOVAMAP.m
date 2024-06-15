@@ -880,7 +880,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
-    tStart = tic;
+        tStart = tic;
     % Determine regions of available void space depending on cell/species size
     % The 4 cell/species diameter categories are: 0, 10, 30, 60 um
     % The values in these categories are a set constant for consistency/comparison
@@ -897,10 +897,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     %   medium bin = 2
     %   large bin  = 3
     %   empty bin  = 4
-    region_vols     = cell(4, 1);
-    region_vols_ind = cell(4, 1);
-    region_bins     = cell(4, 1);
-    region_data     = cell(4, 1);
+    region_vols     = cell(numel(species_cutoffs), 1);
+    region_vols_ind = cell(numel(species_cutoffs), 1);
+    region_bins     = cell(numel(species_cutoffs), 1);
+    region_data     = cell(numel(species_cutoffs), 1);
+    regions_key_output = cell(numel(species_cutoffs), 1);
     % do not include these indices in analysis because not connected to
     % main void space backbone
     throw_away_bb = [];
@@ -919,6 +920,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         if isempty(region_islands.PixelIdxList)
             region_vols{i} = 0;
             region_bins{i} = 4;
+            regions_key_output{i} = {};
         elseif species_cutoffs(i) == 0
             s0 = i;
             % honestly i think this is over-kill and unnecessary...but i guess we're doing this
@@ -945,12 +947,16 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             % save volume
             region_vols{i} = round2sigdig(numel(region_vols_ind{i}) * dx^3, dx) / 1000;
             region_bins{i} = 3;
+            % save regions key
+            regions_key_output{i}{1} = find(keep_log);
         else
             if tot_islands == num_regions_removed + 1
                 % No change from species_cutoff = 0
                 % save volume
                 region_vols{i} = region_vols{s0};
                 region_bins{i} = 3;
+                regions_key_output{i} = zeros(nVoxels, 1);
+                regions_key_output{i}(keep_log) = 1;
             else
                 % remove regions of the void space that are not connected to the main backbone of the void space
                 remove_regions = false(tot_islands, 1);
@@ -989,6 +995,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         region_bins{i}(j) = 3;
                     end
                     region_vols{i}(j) = r_vol;
+                    regions_key_output{i}{j} = region_vols_ind{i}{j};
                 end
 %                     region_vols{i}(end) = region_vols{s0} - sum(region_vols{i});
 %                     region_bins{i}(end) = 4;
@@ -999,7 +1006,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     end
     clear('region_binImage')
 
-    data.regionVolsData = region_data;
+    data.Regions.volume_data = region_data;
+    data.Regions.regions_key = regions_key_output;
 
     tElapsed = toc(tStart);
     % tot_time = writeTime(tElapsed, tot_time, runtimes_file, 'Regions based on species size:');
