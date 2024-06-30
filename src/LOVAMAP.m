@@ -292,9 +292,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     bead_data = beads(:, 1:4);
                     
                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
-                   % %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
-                   % rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
-                   % bead_data(rmv_beads, :) = [];
+                   %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
+                   rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
+                   bead_data(rmv_beads, :) = [];
 
                     % Scan the beads to find min/max bounds and max radius
                     a = min(beads(:, 1:3));
@@ -880,7 +880,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     printTimeInfo(time_log(timeLogIdx));
     timeLogIdx = timeLogIdx + 1;
 
-        tStart = tic;
+    tStart = tic;
     % Determine regions of available void space depending on cell/species size
     % The 4 cell/species diameter categories are: 0, 10, 30, 60 um
     % The values in these categories are a set constant for consistency/comparison
@@ -2185,7 +2185,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     for i = 1 : ridges1D.num
         % checking nearest 3 beads since need 3 pts to form a plane
         for h = 1 : 3
-            edgebead_voxs = bead_struct.EdgeIndices{ridges1D.beads{i}(h)};
+            edgebead_voxs = data.edgeIndices{ridges1D.beads{i}(h)};
             norm_vec = zeros(length(edgebead_voxs), 1);
             for j = 1 : length(edgebead_voxs)
                 norm_vec(j) = norm(voxels(edgebead_voxs(j), :) - voxels(ridges1D.min(i), :));
@@ -3227,7 +3227,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     peaks.pks_graph_length = [pks_graph, ridge_length_graph];
 
     % Get path data for full domain
-    [center_pk, path_nodes, path_length, path_edges, path_tortuosity, path_necks, path_doors, path_r1D_doors] = ...
+    [center_pk, path_nodes, path_length, path_r1Ds, path_tortuosity, path_necks, path_doors, path_r1D_doors] = ...
                 pathsCenter(peaks.L7.indices, peaks.pks_graph_length, ...
                                 ridges1D, edge_ind, voxels, domain);
 
@@ -3235,7 +3235,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     data.paths.center_pk    = center_pk;
     data.paths.node_pks     = path_nodes;
     data.paths.path_lengths = path_length;
-    data.paths.path_r1Ds    = path_edges;
+    data.paths.path_r1Ds    = path_r1Ds;
     data.paths.tortuosity   = path_tortuosity;
     data.paths.neck_data    = path_necks;
     data.paths.door_data    = path_doors;

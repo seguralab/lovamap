@@ -1,5 +1,6 @@
 .vscode/
 *.asv
+*.dat
 *.mat
 *.txt
 *.gif
