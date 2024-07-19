@@ -4547,7 +4547,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    'Mean Local Thickness (um)';
                                                    '# Peaks';
                                                    '# Surrounding Particles';
-                                                   'Largest Enclosed Sphere Diameter(um)';
+                                                   'Largest Enclosed Sphere Diameter (um)';
                                                    'Largest Door Diameter (um)';
                                                    'Smallest Door Diameter (um)';
                                                    'Ellipsoid Axis 1 Length (um)';
