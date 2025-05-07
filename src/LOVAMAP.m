@@ -126,7 +126,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
             if crop_percent < 1
                 nVoxelsOld = nVoxels;
- 
+
                 [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
                                                          crop_percent, dx);
                 % Shape
@@ -134,7 +134,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                 nVPDy = (domain(4) - domain(3)) / dx;
                 nVPDz = (domain(6) - domain(5)) / dx;
                 %shape_cropped = [nVPDx, nVPDy, nVPDz];
- 
+
                 if abs(round(nVPDx) - nVPDx) < 1e-12
                     nVPDx = round(nVPDx);
                 else
@@ -161,7 +161,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         remove_beads(i) = true;
                     end
                 end
-                bead_struct.Beads(remove_beads) = [];  
+                bead_struct.Beads(remove_beads) = [];
                 num_beads = size(bead_struct.Beads, 1);
             end
 
@@ -290,7 +290,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
                     % Columns 1:3 = (x,y,z) of particle center, Column 4 = particle radii
                     bead_data = beads(:, 1:4);
-                    
+
                    %%%%%%%%%%%%%%%%%% !!!!!!!!!!!!!!!!!!!
                    %%% REMOVE BEADS THAT LIE ABOVE z = 600 %%%
                    rmv_beads = (bead_data(:, 3) + bead_data(:, 4)) > 600;
@@ -375,14 +375,14 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
                     if crop_percent < 1
                         % nVoxelsOld = nVoxels;
-                        % 
+                        %
                         % [voxels, domain, crop_mask] = cropBeadDomain_voxels(voxels, domain, ...
                         %                                             crop_percent, dx);
                         % % Shape
                         % nVPDx = (domain(2) - domain(1)) / dx;
                         % nVPDy = (domain(4) - domain(3)) / dx;
                         % nVPDz = (domain(6) - domain(5)) / dx;
-                        % 
+                        %
                         % if abs(round(nVPDx) - nVPDx) < 1e-12
                         %     nVPDx = round(nVPDx);
                         % else
@@ -399,9 +399,9 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         %     error('Number of voxels in z is not an integer.')
                         % end
                         % nVoxels = double(uint32(nVPDx) * uint32(nVPDy) * uint32(nVPDz));
-                        % 
+                        %
                         % %shape_cropped = [nVPDx, nVPDy, nVPDz];
-                        % 
+                        %
                         % bead_struct.Beads = cropToDomain(bead_struct.Beads, ...
                         %                                     nVoxelsOld, crop_mask);
                         % %%%%% THERE'S A BUG HERE... NEED TO RE-ORGANIZE
@@ -409,11 +409,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                         %                                         nVoxelsOld, crop_mask);
                         % bead_struct.Shell = cropToDomain(bead_struct.Shell, ...
                         %                                     nVoxelsOld, crop_mask);
-                        % 
+                        %
                         % bead_struct.Beads = bead_struct.Beads(~cellfun(@isempty, bead_struct.Beads));
                         % bead_struct.EdgeIndices = bead_struct.EdgeIndices(~cellfun(@isempty, bead_struct.EdgeIndices));
                         % bead_struct.Shell = bead_struct.Shell(~cellfun(@isempty, bead_struct.Shell));
-                        % 
+                        %
                         % shape = [nVPDx, nVPDy, nVPDz];
                         % % Update bead struct
                         % bead_struct.Shape     = shape;
@@ -1280,7 +1280,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     ridges2D.indices = accumarray(ic, ridges2D.cum_indices, [], @(r) {sort(r)});
     ridges2D.beads = mat2cell(c, ones(size(c, 1), 1));
     ridges2D.beadNeighbors = vertcat(ridges2D.beads{:});
-    
+
     % Obtain crawl space info
     num_r2D = numel(ridges2D.indices);
     crawl_width = zeros(num_r2D, 1);
@@ -1299,7 +1299,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     end
     ridges2D.crawl_inds = crawl_inds;
     ridges2D.crawl_widths = crawl_width;
-    
+
     % Create sparse full adjacency matrix
     beads_adjacency = sparse(ridges2D.beadNeighbors(:, 1), ...
                              ridges2D.beadNeighbors(:, 2), ...
@@ -1310,8 +1310,8 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
     touching_adjacency = sparse(only_touching(:, 1), ...
                                 only_touching(:, 2), ...
                                 ones(size(only_touching, 1), 1), ...
-                                num_beads, num_beads);    
-                         
+                                num_beads, num_beads);
+
     % Store particle coordination number (# particle neighbors per particle)
     % as well as # of touching particles
     bead_neighbors       = cell(num_beads, 1);
@@ -1327,7 +1327,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         touch_across = find(touching_adjacency(i, :) ~= 0);
         touch_down   = find(touching_adjacency(:, i) ~= 0);
         touching_beads{i} = sort([touch_across(:); touch_down(:)]);
-        touching_beads_count(i)  = numel(touching_beads{i});        
+        touching_beads_count(i)  = numel(touching_beads{i});
     end
     bead_struct.Neighbors     = bead_neighbors;
     bead_struct.CoordCount    = bead_coord_count;
@@ -2434,7 +2434,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                                                    remainder_pks, 'indices');
                         if ~isempty(column_ind)
                             % replace
-                            if length(column_ind) > 1 && ridges1D.rp_counter(k) <= 3
+                            if length(column_ind) > 1 && ridges1D.rp_counter(k) <= 1
                                 error('A single ridge1D is flanked by 2 peaks that will be removed.')
                             else
                                 % check to make sure ridge isn't already
@@ -3148,9 +3148,10 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
     tStart = tic;
     % Determine peaks per subunit using adjacency matrix for connected peaks
+    n = max(pks_graph_conn(:));
     peaks.adjacency = sparse(pks_graph_conn(:, 1), pks_graph_conn(:, 2), ...
                              ones(size(pks_graph_conn, 1), 1), ...
-                             peaks.L7.num, peaks.L7.num);
+                             n, n);
 
     % Store data in struct
     subs_clust           = struct;
@@ -3218,7 +3219,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             end
             ridges1D.lengths(i) = ridgeLength(ridges1D.indices{i}, this_r1Dind, voxels, dx);
         else
-            ridges1D.lengths(i) = ridgeLength(ridges1D.indices{i}, ridges1D.rp_key(i, 1 : ridges1D.rp_counter(i)), voxels, dx);
+            try
+                ridges1D.lengths(i) = ridgeLength(ridges1D.indices{i}, ridges1D.rp_key(i, 1 : ridges1D.rp_counter(i)), voxels, dx);
+            catch
+                continue;
+            end
         end
     end
     % Store peaks that share 1D ridges and include ridge lengths (for
@@ -3807,7 +3812,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 
         %%%%%%%***************************************************%%%%%%%
         %%%%%**** LONGEST LENGTH OF SUBUNIT USING CONVEX HULL ***%%%%%
-        %%%%%%%***************************************************%%%%%%%        
+        %%%%%%%***************************************************%%%%%%%
         tStart = tic;
         convhull_longest = zeros(num_subs, 1);
         for h = 1 : num_subs
@@ -3849,13 +3854,13 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             end
         end
         tElapsed = toc(tStart);
-        
+
         time_log(timeLogIdx).Name = 'Subunit length by convex hull';
         time_log(timeLogIdx).Time = tElapsed;
         time_log(timeLogIdx).Units = 'sec';
         printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
-        
+
         %%%%%%%****************************************************%%%%%%%
         %%%%%************* INTEGRIN-BINDING-PROTEIN MAP *************%%%%%
         %%%%%%%****************************************************%%%%%%%
@@ -3931,7 +3936,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         max_numpksE = 0;
         % NOTE!!: Remember i tracks the subunit number, but j tracks the
         % index into the data used to fill the subunits!!!
-        
+
         for i = 1 : num_subs
             % edge subs first, followed by interior subs
             if i <= numEdgeSubs
@@ -4141,7 +4146,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             end
         end
         pore_list = 1 : numel(subunits);
-        
+
         % Find remaining pores from 1D-ridges
         for i = 1 : data.paths.num_paths
             remaining_pores = true(1, numel(subunits));
@@ -4180,7 +4185,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
                     % Fill path matrix with door data
                     data.paths.path_matrix_pores{i}{row_cntr} = ridges1D.doors{j}.radius * 2;
                     row_cntr = row_cntr + 1;
-                    
+
                     % Fill in pore and door info
                     data.paths.subunits{i} = [data.paths.subunits{i}; this_pore];
                     data.paths.subunits_key{i} = [data.paths.subunits_key{i}; ~subunits{this_pore}.edge];
@@ -4211,15 +4216,15 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
             %   numel(data.paths.node_pks{i}) > numel(data.paths.path_r1Ds{i}) + 1
             %     error('The length of path_r1Ds is greater than the length of node_pks. There is an error with the data.');
             % end
-            
+
             % Determine length of shorter vector
             minLength = numel(data.paths.path_r1Ds{i});
             path_matrix_row = zeros(1, 2 * minLength);
-            
+
             % Interleave elements from node_pks and path_r1Ds
             path_matrix_row(1:2:end) = data.EDT(peaks.L7.indices(data.paths.node_pks{i}(1 : minLength))) * 2;
             path_matrix_row(2:2:end) = arrayfun(@(x) ridges1D.doors{x}.radius * 2, data.paths.path_r1Ds{i}(1 : minLength));
-            
+
             % Append any remaining elements from node_pks
             if length(data.paths.node_pks{i}) > minLength
                 path_matrix_row = [path_matrix_row, data.paths.node_pks{i}(minLength + 1 : end)]; % shouldn't be more than a single value..
@@ -4236,11 +4241,11 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         printTimeInfo(time_log(timeLogIdx));
         timeLogIdx = timeLogIdx + 1;
 
-        % 
-        % 
-        % 
-        % 
-        % 
+        %
+        %
+        %
+        %
+        %
         %     num_nodes = numel(data.paths.node_pks{i});
         %     these_path_subs = zeros(num_nodes, 1);
         %     boolean_key = zeros(num_nodes, 1);
@@ -4272,7 +4277,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         %     data.paths.surrounding_particles.int{i} = unique(these_surr_particles_int);
         %     data.paths.surrounding_particles.ext{i} = unique(these_surr_particles_ext);
         % end
-        % 
+        %
         % % Generate matrix of path pore/door data:
         % % Rows refer to paths
         % % Columns list alternating: pore data, door diameter, pore data, door diameter,
@@ -4652,7 +4657,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
         data.Descriptors.Subs.xCentroid             = zeros(num_subs, 1);
         data.Descriptors.Subs.yCentroid             = zeros(num_subs, 1);
         data.Descriptors.Subs.zCentroid             = zeros(num_subs, 1);
-        data.Descriptors.Subs.uniqueID              = strings(num_subs, 1);           
+        data.Descriptors.Subs.uniqueID              = strings(num_subs, 1);
         for i = 1 : num_subs
             data.Descriptors.Subs.volume(i)         = subunits{i}.volume;
             data.Descriptors.Subs.surfArea(i)       = subunits{i}.surfArea;
@@ -4716,7 +4721,7 @@ function [data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_p
 end
 
 function [] = printTimeInfo(s)
-    c = struct2cell(s); 
+    c = struct2cell(s);
     titleLen = 45;
     dotLen = titleLen - length(c{1});
     dots = repmat('.', [1, dotLen]);
