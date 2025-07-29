@@ -1,5 +1,25 @@
 clearvars;
 
+% Ensure required folders are on path
+srcDir  = fileparts(mfilename('fullpath'));
+baseDir = fileparts(srcDir);
+
+% Define required folders
+requiredPaths = {
+    fullfile(baseDir, 'src'), ...
+    fullfile(baseDir, 'external'), ...
+    fullfile(baseDir, 'mex-lovamap')
+};
+
+% Add to path if not already included
+for i = 1:numel(requiredPaths)
+    p = requiredPaths{i};
+    if exist(p, 'dir') && ~contains(path, p)
+        addpath(genpath(p));
+        fprintf('✔ Added to path: %s\n', p);
+    end
+end
+
 % File parameters
 filename          = 'beadInfo_{100,100}_100_{0,100}_0.dat';
 file_path         = ['./particle_domains/', filename];

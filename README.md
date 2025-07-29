@@ -28,6 +28,14 @@ If you plan on using `LOVAMAP` on a Windows machine **and** do not already have 
 
 ## Installation guide
 
+We've created the script "setup_lovamap.m" to set everything up automatically. The script attempts to do the following:
+- Ensures the appropriate MATLAB toolboxes are installed
+- Installs third-party dependencies
+- Compiles MEX files required to run LOVAMAP
+- Adds all dependency directories to the path
+
+If issues occur while running this script, you can setup LOVAMAP manually following the instructions below.
+
 ### MATLAB add-ons
 
 All of the add-ons listed above can be installed via MATLAB's add-on manager, which is accessible from MATLAB itself. The following are all released by MathWorks,
