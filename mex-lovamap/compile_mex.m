@@ -1,11 +1,5 @@
-% mex -setup C++
-% 
-% mex CXXOPTIMFLAGS='-O3 -fwrapv -DNDEBUG' ...
-%     CXXDEBUGFLAGS='' ...
-%     -silent -I./include/ ./sssr_mex.cpp
 
-
-% Get current platform info
+% Get current OS
 isMac = ismac;
 isWindows = ispc;
 isLinux = isunix && ~ismac;
@@ -28,11 +22,11 @@ if isMac
         '-lMatlabDataArray', ...
         ['LDFLAGS=$LDFLAGS -Wl,-rpath,' engineLibPath]);
 elseif isWindows
-    % Windows (assumes MinGW is properly configured)
+    % Windows (assumes MinGW)
     mex('-silent', ...
         commonFlags{:});
 elseif isLinux
-    % Linux: usually just works with standard flags
+    % Linux
     mex('-silent', ...
         commonFlags{:});
 else

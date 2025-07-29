@@ -143,7 +143,7 @@ function download_third_party_dependencies(externalDir)
                 websave(zipFile, url);
                 unzip(zipFile, targetFolder);
                 
-                % Normalize folder contents (some zips create a nested folder)
+                % Normalize folder contents
                 contents = dir(targetFolder);
                 subdirs = contents([contents.isdir] & ~startsWith({contents.name}, '.'));
                 if numel(subdirs) == 1
