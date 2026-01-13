@@ -4,6 +4,8 @@
 
 LOVAMAP (LOcal Void Analysis using Medial Axis by Particle configuration) is an analytical tool designed to characterize aspects of packed particles (i.e., assemblies, scaffolds, domains) - in particular, the void space between particles. It identifies and subcategorizes the medial axis of the void space and uses these elements to segment the space into 3D pores. LOVAMAP returns many descriptive metrics of the particle assembly, including features of the particles, 3D pores, paths through the void space, and more. In addition, data can be used to plot 3D pores and other features of the structure.
 
+Analysis output data can be found in [lovamap.com](https://lovamap.com).
+
 ## Objective
 
 LOVAMAP analyzes 3D particle domains and extracts detailed information about the void space between particles. The software follows a systematic multi-step process:
