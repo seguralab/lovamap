@@ -86,7 +86,7 @@ The easiest way to run LOVAMAP is to use the `runLOVAMAP.m` script, which serves
 
 2. **Configure analysis parameters** in `runLOVAMAP.m`:
    ```matlab
-   	% FILE PARAMETERS
+	% FILE PARAMETERS
 	filename          = 'particle_assembly.txt';
 	file_path         = './particle_domains/';
 	excel_path        = './outputs/';
@@ -139,10 +139,12 @@ Plain text file containing 4 commented-out or empty rows followed by rows with 4
 #### JSON format (for voxelized data)
 Structured data containing domain information and labeled particle regions. The JSON file must contain the following properties:
 
-`domain_size` - the x, y, z dimensions of the domain in micrometers
-`voxel_size` - the length of each cubic voxel in micrometers
-`bead_count` - the total number of particles in the scaffold
-`beads` - a dictionary where the key corresponds to the particle's randomly assigned numeric id (e.g. "1", "2", etc.) and the value is a list of inclusive 1D voxel index ranges that represent that particle's occupied voxels. 
+| Property | Description |
+|----------|-------------|
+| `domain_size` | The x, y, z dimensions of the domain in micrometers |
+| `voxel_size` | The length of each cubic voxel in micrometers |
+| `bead_count` | The total number of particles in the scaffold |
+| `beads` | A dictionary where the key corresponds to the particle's randomly assigned numeric id (e.g. "1", "2", etc.) and the value is a list of inclusive 1D voxel index ranges that represent that particle's occupied voxels. |
 
 ```json
 {
