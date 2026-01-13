@@ -1,5 +1,34 @@
 clearvars;
 
+% FILE PARAMETERS
+filename          = 'particle_assembly.txt';                % input file name
+file_path         = './particle_domains/';                  % input file path (include final forward-slash)
+excel_path        = './outputs/';                           % file path for Excel output (include final forward-slash)
+
+% INPUT PARAMETERS
+%%%%%%%%%%%%%%%%% Only applicable to spherical data (.txt,.csv,.dat file inputs) %%%%%%%%%%%%%%%%%
+voxel_size        = 2;                                      % desired mesh size in micrometers   
+voxel_range       = [1e7, 1e8];                             % desired resolution range
+%%%%%%%%%%%%%%%%%
+combine_edge_subs = true;                                   % set to false if you do not want to merge any surface pores
+
+% OUTPUT PARAMETERS
+generate_raw_data = true;                                   % set to true to output Excel data
+interior_only     = true;                                   % set to false to output both interior and surface pore data
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RECOMMEND: DO NOT MODIFY BELOW THIS LINE
+
+% Additional input parameters
+crop_percent      = 1;          % percentage of the domain to analyze
+dip_percent       = 0.8;
+hall_cutoff       = 6;          % radius, in um
+shell_thickness   = 4;          % in um
+num_2D_slices     = 30;
+
+% Creating file path
+file_path = [file_path, filename];
+
 % Ensure required folders are on path
 srcDir  = fileparts(mfilename('fullpath'));
 baseDir = fileparts(srcDir);
@@ -19,25 +48,6 @@ for i = 1:numel(requiredPaths)
         fprintf('✔ Added to path: %s\n', p);
     end
 end
-
-% File parameters
-filename          = 'beadInfo_{100,100}_100_{0,100}_0.dat';
-file_path         = ['./particle_domains/', filename];
-excel_path        = './lovamap_outputs/';
-
-% Input parameters
-voxel_size        = 2;
-voxel_range       = [1e7, 1e8]; % desired resolution
-crop_percent      = 1;          % percentage of the domain to analyze
-dip_percent       = 0.8;
-hall_cutoff       = 6;          % radius, in um
-shell_thickness   = 4;          % in um
-num_2D_slices     = 30;
-combine_edge_subs = true;
-
-% Output parameters
-generate_raw_data = true;       % export data to excel
-interior_only     = true;       % output interior subunits only
 
 % Label output files with date stamp
 dateStamp = datestr(now, 'yymmdd-HHMM');

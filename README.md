@@ -2,9 +2,21 @@
 
 ## Overview
 
-`LOVAMAP`
+LOVAMAP (LOcal Void Analysis using Medial Axis by Particle configuration) is an analytical tool designed to characterize aspects of packed particles (i.e., assemblies, scaffolds, domains) - in particular, the void space between particles. It identifies and subcategorizes the medial axis of the void space and uses these elements to segment the space into 3D pores. LOVAMAP returns many descriptive metrics of the particle assembly, including features of the particles, 3D pores, paths through the void space, and more. In addition, data can be used to plot 3D pores and other features of the structure.
 
-## System requirements
+## Objective
+
+LOVAMAP analyzes 3D particle domains and extracts detailed information about the void space between particles. The software follows a systematic multi-step process:
+
+1. **Input Processing**: LOVAMAP accepts particle domain data in two formats:
+   - **.txt/.csv/.dat files**: For particle assemblies comprising spheres, list each particle center coordinate (x, y, z) and radius. Begin the file with a 4-line description of the file. Particle data should begin on line 5.
+   - **.json files**: For pre-voxelized domains, follow our JSON format (see 'JSON format' below).
+
+2. **Methods** For a detailed explanation of LOVAMAP's methodology, please read the Methods section of [Riley et al. *Nat. Comp. Sci.* 2023](https://www.nature.com/articles/s43588-023-00551-x).
+
+5. **Descriptors**: For a list and description of all metrics computed by LOVAMAP, see [lovamap.com/learn](https://lovamap.com/learn).
+
+6. **Excel Outputs**: LOVAMAP includes an option to export all descriptors as an Excel file (see Excel file format).
 
 ### Hardware requirements
 
@@ -28,13 +40,13 @@ If you plan on using `LOVAMAP` on a Windows machine **and** do not already have 
 
 ## Installation guide
 
-We've created the script "setup_lovamap.m" to set everything up automatically. The script attempts to do the following:
-- Ensures the appropriate MATLAB toolboxes are installed
-- Installs third-party dependencies
-- Compiles MEX files required to run LOVAMAP
-- Adds all dependency directories to the path
+We include the script "setup_lovamap.m" to automatically download all external dependencies required to run LOVAMAP, i.e.,
+- Ensure the appropriate MATLAB toolboxes are installed
+- Install third-party dependencies
+- Compile MEX files required to run LOVAMAP
+- Add all dependency directories to the path
 
-If issues occur while running this script, you can setup LOVAMAP manually following the instructions below.
+If issues occur while running this script, you may setup LOVAMAP manually following the instructions below.
 
 ### MATLAB add-ons
 
@@ -64,26 +76,116 @@ For the following, which are not released by MathWorks, select the option 'Add t
 
 And you're done! Now, all methods that depend on C/C++ code are ready to go.
 
-## Demo
-
-`LOVAMAP` requires the following inputs in the order in which they are listed here.
-
-| Input argument | Description |
-|----------------|-------------|
-| `domain_file`  | A `.csv` or `.json` file which describes the particle domain. |
-| `voxel_size` | The size of each cubic voxel. The units of this parameter are assumed to be the same as the units used in the domain file. |
-| `voxel_range` | The allowable range for the number of voxels to represent the domain. |
-| `crop_percent` | |
-| `hall_cutoff` | The maximum allowable diameter of a 'hallway' on the 2D-surface of the void space. The units of this parameter are assumed to be the same as the units used in the domain file. |
-| `shell_thickness` | This defines the thickness of the shell of each particle which is measured from the edge of the particle inward. This region represents how far into each particle a biological cell can "reach" or sense ligand concentration. The units of this parameter are assumed to be the same as the units used in the domain file. |
-| `num_2D_slices` | The number of evenly-spaced z-slices to sample from the domain for approximating the void _volume_ fraction, which is computed by averaging the void _area_ fraction of each z-slice. |
-
-`LOVAMAP` returns the following outputs in the order in which they are listed here.
-
-| Output argument | Description |
-|-----------------|-------------|
-| `data`    | A struct containing all of the data produced by `LOVAMAP` of the input particle domain. |
-| 'time_log` | A struct array that logs the time spent in each section of `LOVAMAP`. This is mainly used as reference for debugging or testing new features. | 
-
 
 ## Instructions for use
+### Quick start
+
+The easiest way to run LOVAMAP is to use the `runLOVAMAP.m` script, which serves as a template for configuring and executing an analysis. Here's the basic workflow:
+
+1. **Place your input file** in the `particle_domains/` directory or adjust the `file_path` variable to point to your domain file.
+
+2. **Configure analysis parameters** in `runLOVAMAP.m`:
+   ```matlab
+   	% FILE PARAMETERS
+	filename          = 'particle_assembly.txt';
+	file_path         = './particle_domains/';
+	excel_path        = './outputs/';
+
+	% INPUT PARAMETERS
+	%%%%%%%%%%%%%%%%% Only applicable to spherical data (.txt,.csv,.dat file inputs) %%%%%%%%%%%%%%%%%
+	voxel_size        = 2;
+	voxel_range       = [1e7, 1e8];
+	%%%%%%%%%%%%%%%%%
+	combine_edge_subs = true;
+
+	% OUTPUT PARAMETERS
+	generate_raw_data = true;
+	interior_only     = true;
+   ```
+
+3. **Run the script**:
+   ```matlab
+   runLOVAMAP
+   ```
+   The analysis will execute and output results to `outputs/` directory.
+
+### Understanding the parameters
+
+| Parameter | Purpose | Guidance |
+|-----------|---------|----------|
+| `file_name` | Name of particle assembly file (.txt, .csv, .dat, .json) | Must be surrounded by single quotation marks. |
+| `file_path` | Name of path containing your particle assembly file | Must be surrounded by single quotation marks. Must end with a forward slash. May begin with '/. notation if subfolders lie within current folder. |
+| `excel_path` | Name of path/folder where LOVAMAP will deposit output files (.xlsx) | Must be surrounded by single quotation marks. Must end with a forward slash. May begin with '/. notation if output folder is to lie within current folder. |
+| `voxel_size` | Target mesh size, i.e., side-length of cubic voxel, in micrometers | This parameter is only necessary when inputting spherical-particle data (.txt, .csv, .dat). If a labeled domain file (.json) is inputted, this parameter value will be ignored. LOVAMAP will select the final mesh size based on balancing the target `voxel_size` with the target `voxel_range`. Smaller `voxel_size` values generate finer resolution but increase computation time.|
+| `voxel_range` | Target range of total number of voxels in the system | Range must be written within brackets and separated by a comma, e.g., `[min, max]`. This parameter is only necessary when inputting spherical-particle data (.txt, .csv, .dat). If a labeled domain file (.json) is inputted, this parameter value will be ignored. LOVAMAP will select the final mesh size based on balancing the target `voxel_range` with the target `voxel_size`. Larger `min` and `max` values of `voxel_range` generate more voxels (and therefore finer resolution) but increase computation time. |
+| `combine_edge_subs` | Set to `true` to combine surface pores that share the same open space into and out of the packing | When set to `true`, LOVAMAP will combine 3D pores that extend to the same entrance (or exit) opening. Setting this parameter to `false` will likely lead to over-segmentation of pores at the surface of the packing, but this tradeoff may be necessary if the packing contains few particles. |
+| `generate_raw_data` | Set to `true` to output Excel data | Setting this parameter to `false` will not inhibit LOVAMAP from running or generating the `data` variable in the Workspace; however, no Excel file will be deposited in the `excel_path` folder. |
+| `interior_only` | Set to `true` to only output interior pore data for the 3D-pore portion of the output file | Setting this parameter to `false` will output descriptor data for all 3D pores, i.e., interior pores and pores that extend to the surface of the packing. The value of this parameter will not affect the output of the non-3D-pore descriptors. If `generate_raw_data` equals `false`, the value of this parameter will be ignored. |
+
+### Input file formats
+
+#### TXT/CSV/DAT format (for spherical particles)
+Plain text file containing 4 commented-out or empty rows followed by rows with 4 columns, one particle per row, e.g.:
+```
+% Monodisperse Packing Assembly
+% Generated on Jan. 12 2026
+% Software by Houdini
+% x_center   y_center   z_center   radius
+100.5      250.3      150.7      50
+102.1      252.8      152.2      50
+...
+```
+
+#### JSON format (for voxelized data)
+Structured data containing domain information and labeled particle regions. The JSON file must contain the following properties:
+
+`domain_size` - the x, y, z dimensions of the domain in micrometers
+`voxel_size` - the length of each cubic voxel in micrometers
+`bead_count` - the total number of particles in the scaffold
+`beads` - a dictionary where the key corresponds to the particle's randomly assigned numeric id (e.g. "1", "2", etc.) and the value is a list of inclusive 1D voxel index ranges that represent that particle's occupied voxels. 
+
+```json
+{
+  "domain_size": [500, 500, 500],
+  "voxel_size": 2.0,
+  "bead_count": 125,
+  "beads": {
+    "1": [[1, 100], [200, 250]],
+    "2": [[101, 199], [251, 350]],
+    ...
+  }
+}
+```
+
+### Output files
+
+LOVAMAP generates an Excel file (`.xlsx`) containing:
+- **Summary statistics**: Overall void metrics, void fraction, ridge counts
+- **Pore subunit data**: Individual rows for each identified pore with geometry and topology metrics
+- **Ridge information**: Details on 1D and 2D ridge networks, connectivity
+- **Time log**: Computation time for each processing step (useful for performance optimization)
+
+The Excel filename is derived from your input filename. For example, `beadInfo_domain.dat` produces `stats_beadInfo_domain.xlsx`.
+
+### Advanced usage: Direct function calls
+
+For programmatic access, you can call LOVAMAP directly:
+
+```matlab
+[data, time_log] = LOVAMAP(domain_file, voxel_size, voxel_range, crop_percent, ...
+    dip_percent, hall_cutoff, shell_thickness, num_2D_slices, combine_edge_subs);
+```
+
+**Outputs:**
+- `data`: Structure containing all computed metrics (pore volumes, ridge lengths, void fraction, etc.)
+- `time_log`: Struct array logging execution time for each processing step
+
+Access specific results via `data.Subunits`, `data.Ridges1D`, `data.Ridges2D`, etc.
+
+### Tips for best results
+
+1. **Voxel size**: Choose a voxel size that captures relevant pore features without excessive memory usage. Test with smaller domains first.
+2. **Hall cutoff**: Use values on the order of your particle radius to meaningfully segment pores. Experiment with ±20% variations to assess sensitivity.
+3. **Cropping**: For large domains with boundary effects, set `crop_percent` to 0.8-0.9 to exclude edge artifacts.
+4. **Ligand accessibility**: Adjust `shell_thickness` based on biological context (e.g., cell reach distance in tissue engineering applications).
+5. **Monitoring**: Review `time_log` output to identify bottlenecks, especially for large datasets.
