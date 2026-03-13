@@ -97,7 +97,7 @@ function [sortedIdxs] = sortRidgePts(ridgeIdxs, endptIdxs, voxels, dx)
     % (diffusion equation) on the graph.
     sz = size(nodes, 1);      % problem size
     h  = 1;                   % time-step for heat/diffusion evolution
-    I  = sparse(eye(sz));     % sparse identity matrix
+    I = speye(sz);     % sparse identity matrix
  
     % Initial condition will be a large amount of heat at the first endpoint.
     uInit = zeros(sz, 1);
